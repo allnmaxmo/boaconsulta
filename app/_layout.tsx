@@ -1,24 +1,43 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { DadosClinicaProvider } from '@/src/contextos/DadosClinicaContexto';
+import { cores } from '@/src/constantes/tema';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+const temaBoaConsulta = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: cores.fundo,
+    primary: cores.azul,
+    card: cores.superficie,
+    text: cores.texto,
+    border: cores.borda,
+  },
+};
 
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <DadosClinicaProvider>
+      <ThemeProvider value={temaBoaConsulta}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="agendamento/novo" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="agendamento/[id]" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="pacientes/novo" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="pacientes/[id]/editar" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="pacientes/[id]/index" />
+          <Stack.Screen name="profissionais/novo" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="profissionais/[id]" options={{ presentation: 'modal' }} />
+        </Stack>
+        <StatusBar style="dark" />
+      </ThemeProvider>
+    </DadosClinicaProvider>
   );
 }

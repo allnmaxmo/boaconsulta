@@ -1,33 +1,48 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { cores } from '@/src/constantes/tema';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: cores.azul,
+        tabBarInactiveTintColor: cores.textoSuave,
+        tabBarStyle: {
+          backgroundColor: cores.superficie,
+          borderTopColor: cores.borda,
+          height: 82,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '700',
+        },
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Agenda',
+          tabBarIcon: ({ color }) => <MaterialIcons size={25} name="event-note" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="pacientes"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Pacientes',
+          tabBarIcon: ({ color }) => <MaterialIcons size={25} name="people-outline" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profissionais"
+        options={{
+          title: 'Profissionais',
+          tabBarIcon: ({ color }) => <MaterialIcons size={25} name="badge" color={color} />,
         }}
       />
     </Tabs>
