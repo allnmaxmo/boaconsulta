@@ -15,8 +15,8 @@ const temaBoaConsulta = {
   colors: {
     ...DefaultTheme.colors,
     background: cores.fundo,
-    primary: cores.azul,
-    card: cores.superficie,
+    primary: cores.azulProfundo,
+    card: cores.vidroForte,
     text: cores.texto,
     border: cores.borda,
   },
