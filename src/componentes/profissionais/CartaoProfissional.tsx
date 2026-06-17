@@ -1,8 +1,10 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { cores, raios, sombraCartao } from '@/src/constantes/tema';
+import { GlassSurface } from '@/src/componentes/interface/GlassSurface';
+import { movimento } from '@/src/constantes/movimento';
+import { cores, raios } from '@/src/constantes/tema';
 import { Profissional } from '@/src/tipos/dominio';
 
 type CartaoProfissionalProps = {
@@ -19,8 +21,13 @@ export function CartaoProfissional({
   onExcluir,
 }: CartaoProfissionalProps) {
   return (
-    <Animated.View entering={FadeInUp.delay(indice * 45).duration(320).springify()}>
-      <View style={styles.cartao}>
+    <Animated.View
+      entering={FadeInDown.delay(indice * movimento.listas.profissionaisDelay)
+        .duration(movimento.duracoes.entradaRapida)
+        .springify()
+        .damping(movimento.molas.entradaDamping)
+        .stiffness(movimento.molas.entradaStiffness)}>
+      <GlassSurface style={styles.cartao} contentStyle={styles.cartaoConteudo} intensity={84}>
         <View style={styles.avatar}>
           <MaterialIcons name="badge" size={22} color={cores.verde} />
         </View>
@@ -36,30 +43,30 @@ export function CartaoProfissional({
             <MaterialIcons name="delete-outline" size={18} color={cores.vermelho} />
           </Pressable>
         </View>
-      </View>
+      </GlassSurface>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   cartao: {
+    borderRadius: raios.xl,
+  },
+  cartaoConteudo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    borderRadius: raios.lg,
-    backgroundColor: cores.superficie,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    padding: 16,
-    ...sombraCartao,
+    padding: 18,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: cores.verdeSuave,
+    backgroundColor: cores.cianoSuave,
+    borderWidth: 1,
+    borderColor: cores.bordaClara,
   },
   info: {
     flex: 1,
@@ -80,12 +87,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   acao: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 38,
+    height: 38,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: cores.azulSuave,
+    backgroundColor: cores.vidroForte,
+    borderWidth: 1,
+    borderColor: cores.borda,
   },
   acaoPerigo: {
     backgroundColor: cores.vermelhoSuave,

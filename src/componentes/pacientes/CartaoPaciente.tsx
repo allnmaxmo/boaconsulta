@@ -1,8 +1,11 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInLeft } from 'react-native-reanimated';
 
-import { cores, raios, sombraCartao } from '@/src/constantes/tema';
+import { GlassSurface } from '@/src/componentes/interface/GlassSurface';
+import { MotionPressable } from '@/src/componentes/interface/MotionPressable';
+import { movimento } from '@/src/constantes/movimento';
+import { cores, raios } from '@/src/constantes/tema';
 import { Paciente } from '@/src/tipos/dominio';
 
 type CartaoPacienteProps = {
@@ -15,51 +18,58 @@ type CartaoPacienteProps = {
 
 export function CartaoPaciente({ paciente, indice = 0, onAbrir, onEditar, onExcluir }: CartaoPacienteProps) {
   return (
-    <Animated.View entering={FadeInUp.delay(indice * 45).duration(320).springify()}>
-      <Pressable onPress={onAbrir} style={styles.cartao}>
-        <View style={styles.avatar}>
-          <Text style={styles.inicial}>{paciente.nome.charAt(0)}</Text>
-        </View>
-        <View style={styles.info}>
-          <Text style={styles.nome}>{paciente.nome}</Text>
-          <Text style={styles.telefone}>{paciente.telefone}</Text>
-          <Text style={styles.perfil}>Ver perfil</Text>
-        </View>
-        <View style={styles.acoes}>
-          <Pressable onPress={onEditar} style={styles.acao}>
-            <MaterialIcons name="edit" size={18} color={cores.azul} />
-          </Pressable>
-          <Pressable onPress={onExcluir} style={[styles.acao, styles.acaoPerigo]}>
-            <MaterialIcons name="delete-outline" size={18} color={cores.vermelho} />
-          </Pressable>
-        </View>
-      </Pressable>
+    <Animated.View
+      entering={FadeInLeft.delay(indice * movimento.listas.pacientesDelay)
+        .duration(movimento.duracoes.entradaPadrao)
+        .springify()
+        .damping(movimento.molas.entradaDamping)
+        .stiffness(movimento.molas.entradaStiffness)}>
+      <MotionPressable onPress={onAbrir}>
+        <GlassSurface style={styles.cartao} contentStyle={styles.cartaoConteudo} intensity={84}>
+          <View style={styles.avatar}>
+            <Text style={styles.inicial}>{paciente.nome.charAt(0)}</Text>
+          </View>
+          <View style={styles.info}>
+            <Text style={styles.nome}>{paciente.nome}</Text>
+            <Text style={styles.telefone}>{paciente.telefone}</Text>
+            <Text style={styles.perfil}>Ver perfil</Text>
+          </View>
+          <View style={styles.acoes}>
+            <Pressable onPress={onEditar} style={styles.acao}>
+              <MaterialIcons name="edit" size={18} color={cores.azul} />
+            </Pressable>
+            <Pressable onPress={onExcluir} style={[styles.acao, styles.acaoPerigo]}>
+              <MaterialIcons name="delete-outline" size={18} color={cores.vermelho} />
+            </Pressable>
+          </View>
+        </GlassSurface>
+      </MotionPressable>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   cartao: {
+    borderRadius: raios.xl,
+  },
+  cartaoConteudo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    borderRadius: raios.lg,
-    backgroundColor: cores.superficie,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    padding: 16,
-    ...sombraCartao,
+    padding: 18,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: cores.azulSuave,
+    backgroundColor: cores.lilasSuave,
+    borderWidth: 1,
+    borderColor: cores.bordaClara,
   },
   inicial: {
-    color: cores.azul,
+    color: cores.lilas,
     fontSize: 20,
     fontWeight: '900',
   },
@@ -88,12 +98,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   acao: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 38,
+    height: 38,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: cores.azulSuave,
+    backgroundColor: cores.vidroForte,
+    borderWidth: 1,
+    borderColor: cores.borda,
   },
   acaoPerigo: {
     backgroundColor: cores.vermelhoSuave,

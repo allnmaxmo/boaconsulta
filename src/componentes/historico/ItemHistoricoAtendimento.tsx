@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { SeloStatus } from '@/src/componentes/agenda/SeloStatus';
+import { GlassSurface } from '@/src/componentes/interface/GlassSurface';
 import { cores, raios } from '@/src/constantes/tema';
 import { AtendimentoComRelacionamentos } from '@/src/tipos/dominio';
 import { formatarDataCurta, obterHorario } from '@/src/utilitarios/data';
@@ -11,32 +12,31 @@ type ItemHistoricoAtendimentoProps = {
 
 export function ItemHistoricoAtendimento({ atendimento }: ItemHistoricoAtendimentoProps) {
   return (
-    <View style={styles.item}>
-      <View style={styles.data}>
-        <Text style={styles.dataTexto}>{formatarDataCurta(atendimento.dataHora)}</Text>
-        <Text style={styles.horaTexto}>{obterHorario(atendimento.dataHora)}</Text>
-      </View>
-      <View style={styles.info}>
-        <Text style={styles.tipo}>{atendimento.tipoAtendimento}</Text>
-        <Text style={styles.profissional}>
-          {atendimento.profissional?.nome ?? 'Profissional removido'}
-        </Text>
-      </View>
-      <SeloStatus status={atendimento.status} />
-    </View>
+    <GlassSurface style={styles.item} contentStyle={styles.itemConteudo} intensity={84} variant="subtle">
+        <View style={styles.data}>
+          <Text style={styles.dataTexto}>{formatarDataCurta(atendimento.dataHora)}</Text>
+          <Text style={styles.horaTexto}>{obterHorario(atendimento.dataHora)}</Text>
+        </View>
+        <View style={styles.info}>
+          <Text style={styles.tipo}>{atendimento.tipoAtendimento}</Text>
+          <Text style={styles.profissional}>
+            {atendimento.profissional?.nome ?? 'Profissional removido'}
+          </Text>
+        </View>
+        <SeloStatus status={atendimento.status} />
+    </GlassSurface>
   );
 }
 
 const styles = StyleSheet.create({
   item: {
+    borderRadius: raios.lg,
+  },
+  itemConteudo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: raios.md,
-    backgroundColor: cores.superficieElevada,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    padding: 12,
+    padding: 14,
   },
   data: {
     width: 74,

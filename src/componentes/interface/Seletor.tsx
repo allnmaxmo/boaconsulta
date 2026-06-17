@@ -1,7 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, Layout } from 'react-native-reanimated';
 
-import { cores, raios } from '@/src/constantes/tema';
+import { movimento } from '@/src/constantes/movimento';
+import { cores, raios, sombraSuave } from '@/src/constantes/tema';
 
 export type OpcaoSeletor = {
   rotulo: string;
@@ -25,7 +26,12 @@ export function Seletor({ rotulo, valor, opcoes, onChange, erro, horizontal = fa
         const selecionado = opcao.valor === valor;
 
         return (
-          <Animated.View key={opcao.valor} entering={FadeIn.duration(180)} layout={Layout.springify()}>
+          <Animated.View
+            key={opcao.valor}
+            entering={FadeIn.duration(movimento.duracoes.entradaRapida)}
+            layout={Layout.springify()
+              .damping(movimento.molas.layoutDamping)
+              .stiffness(movimento.molas.layoutStiffness)}>
             <Pressable
               onPress={() => onChange(opcao.valor)}
               style={[styles.opcao, selecionado ? styles.opcaoSelecionada : null]}>
@@ -75,19 +81,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   opcao: {
-    minHeight: 44,
-    borderRadius: raios.md,
+    minHeight: 48,
+    borderRadius: raios.lg,
     borderWidth: 1,
     borderColor: cores.borda,
-    backgroundColor: cores.superficie,
+    backgroundColor: cores.vidroForte,
     justifyContent: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 2,
+    ...sombraSuave,
   },
   opcaoSelecionada: {
-    backgroundColor: cores.azulSuave,
-    borderColor: cores.azul,
+    backgroundColor: cores.lilasSuave,
+    borderColor: 'rgba(139,92,246,0.28)',
   },
   opcaoTexto: {
     color: cores.texto,
@@ -95,7 +102,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   opcaoTextoSelecionada: {
-    color: cores.azul,
+    color: cores.lilas,
   },
   detalhe: {
     color: cores.textoSuave,
@@ -108,4 +115,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

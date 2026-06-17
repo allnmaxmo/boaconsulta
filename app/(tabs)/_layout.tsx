@@ -1,6 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { cores } from '@/src/constantes/tema';
@@ -9,18 +11,40 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: cores.azul,
+        tabBarActiveTintColor: cores.azulProfundo,
         tabBarInactiveTintColor: cores.textoSuave,
         tabBarStyle: {
-          backgroundColor: cores.superficie,
-          borderTopColor: cores.borda,
-          height: 82,
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 12,
+          height: 76,
           paddingTop: 8,
+          paddingBottom: 10,
+          borderTopWidth: 1,
+          borderTopColor: cores.bordaClara,
+          borderRadius: 28,
+          backgroundColor: 'rgba(255,255,255,0.72)',
+          overflow: 'hidden',
+          shadowColor: cores.sombra,
+          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: 0.16,
+          shadowRadius: 30,
+          elevation: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '700',
+          fontWeight: '800',
         },
+        tabBarBackground: () => (
+          <BlurView
+            blurReductionFactor={1}
+            experimentalBlurMethod="dimezisBlurView"
+            intensity={84}
+            tint="extraLight"
+            style={StyleSheet.absoluteFill}
+          />
+        ),
         headerShown: false,
         tabBarButton: HapticTab,
       }}>

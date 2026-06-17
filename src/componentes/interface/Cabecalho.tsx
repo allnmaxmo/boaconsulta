@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { cores } from '@/src/constantes/tema';
+import { GlassSurface } from '@/src/componentes/interface/GlassSurface';
+import { cores, raios, sombraSuave } from '@/src/constantes/tema';
 
 type CabecalhoProps = {
   titulo: string;
@@ -10,22 +11,27 @@ type CabecalhoProps = {
 
 export function Cabecalho({ titulo, subtitulo, acao }: CabecalhoProps) {
   return (
-    <View style={styles.container}>
+    <GlassSurface style={styles.container} contentStyle={styles.conteudo} variant="strong" intensity={84}>
       <View style={styles.textos}>
         <Text style={styles.titulo}>{titulo}</Text>
         {subtitulo ? <Text style={styles.subtitulo}>{subtitulo}</Text> : null}
       </View>
       {acao}
-    </View>
+    </GlassSurface>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    borderRadius: raios.xl,
+    ...sombraSuave,
+  },
+  conteudo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
+    padding: 18,
   },
   textos: {
     flex: 1,
@@ -33,13 +39,12 @@ const styles = StyleSheet.create({
   },
   titulo: {
     color: cores.texto,
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '700',
   },
   subtitulo: {
     color: cores.textoSuave,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
-

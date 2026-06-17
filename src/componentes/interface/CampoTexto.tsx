@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 
-import { cores, raios } from '@/src/constantes/tema';
+import { cores, raios, sombraSuave } from '@/src/constantes/tema';
 
 type CampoTextoProps = TextInputProps & {
   rotulo: string;
@@ -31,14 +31,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   input: {
-    minHeight: 52,
-    borderRadius: raios.md,
+    minHeight: 56,
+    borderRadius: raios.lg,
     borderWidth: 1,
     borderColor: cores.borda,
-    backgroundColor: cores.superficie,
+    backgroundColor: cores.vidroForte,
     color: cores.texto,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     fontSize: 16,
+    fontWeight: '600',
+    ...sombraSuave,
   },
   inputErro: {
     borderColor: cores.vermelho,
@@ -50,4 +52,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
