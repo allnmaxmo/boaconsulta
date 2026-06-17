@@ -3,10 +3,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { cores, raios } from '@/src/constantes/tema';
 import { StatusAtendimento } from '@/src/tipos/dominio';
 
-const configuracaoStatus: Record<StatusAtendimento, { rotulo: string; cor: string; fundo: string }> = {
-  agendado: { rotulo: 'Agendado', cor: cores.azul, fundo: cores.azulSuave },
-  realizado: { rotulo: 'Realizado', cor: cores.verde, fundo: cores.verdeSuave },
-  cancelado: { rotulo: 'Cancelado', cor: cores.vermelho, fundo: cores.vermelhoSuave },
+const configuracaoStatus: Record<StatusAtendimento, { rotulo: string; cor: string; fundo: string; borda: string }> = {
+  agendado: { rotulo: 'Agendado', cor: cores.azulProfundo, fundo: cores.lilasSuave, borda: 'rgba(139,92,246,0.20)' },
+  realizado: { rotulo: 'Realizado', cor: cores.verde, fundo: cores.verdeSuave, borda: 'rgba(22,163,74,0.18)' },
+  cancelado: { rotulo: 'Cancelado', cor: cores.vermelho, fundo: cores.vermelhoSuave, borda: 'rgba(220,38,38,0.16)' },
 };
 
 type SeloStatusProps = {
@@ -17,7 +17,7 @@ export function SeloStatus({ status }: SeloStatusProps) {
   const config = configuracaoStatus[status];
 
   return (
-    <View style={[styles.selo, { backgroundColor: config.fundo }]}>
+    <View style={[styles.selo, { backgroundColor: config.fundo, borderColor: config.borda }]}>
       <Text style={[styles.texto, { color: config.cor }]}>{config.rotulo}</Text>
     </View>
   );
@@ -25,10 +25,11 @@ export function SeloStatus({ status }: SeloStatusProps) {
 
 const styles = StyleSheet.create({
   selo: {
-    borderRadius: raios.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: raios.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     alignSelf: 'flex-start',
+    borderWidth: 1,
   },
   texto: {
     fontSize: 12,

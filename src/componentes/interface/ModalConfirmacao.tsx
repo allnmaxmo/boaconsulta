@@ -1,5 +1,6 @@
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
+import { GlassSurface } from '@/src/componentes/interface/GlassSurface';
 import { cores, raios, sombraCartao } from '@/src/constantes/tema';
 import { Botao } from '@/src/componentes/interface/Botao';
 
@@ -23,14 +24,14 @@ export function ModalConfirmacao({
   return (
     <Modal visible={visivel} transparent animationType="fade" onRequestClose={onCancelar}>
       <View style={styles.overlay}>
-        <View style={styles.cartao}>
+        <GlassSurface style={styles.cartao} contentStyle={styles.cartaoConteudo} variant="strong" intensity={84}>
           <Text style={styles.titulo}>{titulo}</Text>
           <Text style={styles.descricao}>{descricao}</Text>
           <View style={styles.acoes}>
             <Botao titulo="Voltar" variante="secundario" onPress={onCancelar} style={styles.botao} />
             <Botao titulo={textoConfirmar} variante="perigo" onPress={onConfirmar} style={styles.botao} />
           </View>
-        </View>
+        </GlassSurface>
       </View>
     </Modal>
   );
@@ -41,22 +42,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(19, 32, 51, 0.34)',
+    backgroundColor: 'rgba(17,24,39,0.28)',
     padding: 22,
   },
   cartao: {
     width: '100%',
     maxWidth: 420,
-    borderRadius: raios.lg,
-    backgroundColor: cores.superficie,
-    padding: 22,
-    gap: 12,
+    borderRadius: raios.xl,
     ...sombraCartao,
+  },
+  cartaoConteudo: {
+    padding: 24,
+    gap: 14,
   },
   titulo: {
     color: cores.texto,
-    fontSize: 21,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
   },
   descricao: {
     color: cores.textoSuave,
@@ -72,4 +74,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

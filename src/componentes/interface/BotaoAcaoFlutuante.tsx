@@ -2,6 +2,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
+import { movimento } from '@/src/constantes/movimento';
 import { cores, raios, sombraCartao } from '@/src/constantes/tema';
 
 const PressableAnimado = Animated.createAnimatedComponent(Pressable);
@@ -14,7 +15,14 @@ type BotaoAcaoFlutuanteProps = {
 export function BotaoAcaoFlutuante({ onPress, acessibilidade }: BotaoAcaoFlutuanteProps) {
   const escala = useSharedValue(1);
   const estiloAnimado = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(escala.value, { damping: 14, stiffness: 220 }) }],
+    transform: [
+      {
+        scale: withSpring(escala.value, {
+          damping: movimento.molas.fabDamping,
+          stiffness: movimento.molas.fabStiffness,
+        }),
+      },
+    ],
   }));
 
   return (
@@ -22,7 +30,7 @@ export function BotaoAcaoFlutuante({ onPress, acessibilidade }: BotaoAcaoFlutuan
       accessibilityLabel={acessibilidade}
       onPress={onPress}
       onPressIn={() => {
-        escala.value = 0.94;
+        escala.value = movimento.escala.fab;
       }}
       onPressOut={() => {
         escala.value = 1;
@@ -37,14 +45,15 @@ const styles = StyleSheet.create({
   botao: {
     position: 'absolute',
     right: 22,
-    bottom: 28,
-    width: 62,
-    height: 62,
-    borderRadius: raios.lg,
+    bottom: 108,
+    width: 66,
+    height: 66,
+    borderRadius: raios.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: cores.azul,
+    backgroundColor: cores.azulProfundo,
+    borderWidth: 1,
+    borderColor: cores.bordaClara,
     ...sombraCartao,
   },
 });
-

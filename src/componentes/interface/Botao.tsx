@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -7,7 +8,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { cores, raios } from '@/src/constantes/tema';
+import { movimento } from '@/src/constantes/movimento';
+import { cores, raios, sombraSuave } from '@/src/constantes/tema';
 
 const PressableAnimado = Animated.createAnimatedComponent(Pressable);
 
@@ -36,8 +38,15 @@ export function Botao({
   const inativo = desabilitado || carregando;
 
   const estiloAnimado = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(escala.value, { damping: 16, stiffness: 220 }) }],
-    opacity: withTiming(inativo ? 0.58 : 1),
+    transform: [
+      {
+        scale: withSpring(escala.value, {
+          damping: movimento.molas.toqueDamping,
+          stiffness: movimento.molas.toqueStiffness,
+        }),
+      },
+    ],
+    opacity: withTiming(inativo ? 0.58 : 1, { duration: movimento.duracoes.entradaRapida }),
   }));
 
   return (
@@ -45,21 +54,39 @@ export function Botao({
       disabled={inativo}
       onPress={onPress}
       onPressIn={() => {
-        escala.value = 0.97;
+        escala.value = movimento.escala.botao;
       }}
       onPressOut={() => {
         escala.value = 1;
       }}
       style={[styles.base, styles[variante], estiloAnimado, style]}>
+      {variante === 'primario' ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={[cores.azulProfundo, cores.lilas]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      {variante === 'perigo' ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={[cores.vermelho, '#F97316']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       {carregando ? (
-        <ActivityIndicator color={variante === 'primario' || variante === 'perigo' ? '#fff' : cores.azul} />
+        <ActivityIndicator color={variante === 'primario' || variante === 'perigo' ? '#fff' : cores.azulProfundo} />
       ) : (
         <>
           {icone ? (
             <MaterialIcons
               name={icone}
               size={18}
-              color={variante === 'primario' || variante === 'perigo' ? '#fff' : cores.azul}
+              color={variante === 'primario' || variante === 'perigo' ? '#fff' : cores.azulProfundo}
             />
           ) : null}
           <Text
@@ -78,38 +105,44 @@ export function Botao({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 50,
-    borderRadius: raios.md,
+    minHeight: 52,
+    borderRadius: raios.pill,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: cores.bordaClara,
+    overflow: 'hidden',
   },
   primario: {
-    backgroundColor: cores.azul,
+    backgroundColor: cores.azulProfundo,
+    ...sombraSuave,
   },
   secundario: {
-    backgroundColor: cores.azulSuave,
+    backgroundColor: cores.vidroForte,
+    borderColor: cores.borda,
   },
   perigo: {
     backgroundColor: cores.vermelho,
+    ...sombraSuave,
   },
   fantasma: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    borderColor: 'transparent',
   },
   texto: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   textoClaro: {
     color: '#fff',
   },
   textoAzul: {
-    color: cores.azul,
+    color: cores.azulProfundo,
   },
   textoFantasma: {
     color: cores.textoSuave,
   },
 });
-
