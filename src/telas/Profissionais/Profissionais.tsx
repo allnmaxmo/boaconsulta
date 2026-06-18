@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BotaoAcaoFlutuante } from '@/src/componentes/interface/BotaoAcaoFlutuante';
@@ -16,15 +16,9 @@ import { rotaApp } from '@/src/utilitarios/rotas';
 
 export function Profissionais() {
   const router = useRouter();
-  const { profissionais, excluirProfissional } = useDadosClinica();
+  const { profissionais, excluirProfissional, carregando, erro } = useDadosClinica();
   const [busca, setBusca] = useState('');
-  const [carregando, setCarregando] = useState(true);
   const [profissionalParaExcluir, setProfissionalParaExcluir] = useState<Profissional | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setCarregando(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const profissionaisFiltrados = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase('pt-BR');
@@ -52,6 +46,8 @@ export function Profissionais() {
 
         {carregando ? (
           <EstadoCarregamento />
+        ) : erro ? (
+          <EstadoVazio titulo="Não foi possível carregar profissionais" descricao={erro} icone="cloud-off" />
         ) : profissionaisFiltrados.length === 0 ? (
           <EstadoVazio
             titulo={busca ? 'Nenhum profissional encontrado' : 'Nenhum profissional cadastrado'}
@@ -86,12 +82,12 @@ export function Profissionais() {
       <ModalConfirmacao
         visivel={Boolean(profissionalParaExcluir)}
         titulo="Excluir profissional?"
-        descricao={`O cadastro de ${profissionalParaExcluir?.nome ?? 'profissional'} será removido desta simulação.`}
+        descricao={`O cadastro de ${profissionalParaExcluir?.nome ?? 'profissional'} será removido do banco.`}
         textoConfirmar="Excluir"
         onCancelar={() => setProfissionalParaExcluir(null)}
-        onConfirmar={() => {
+        onConfirmar={async () => {
           if (profissionalParaExcluir) {
-            excluirProfissional(profissionalParaExcluir.id);
+            await excluirProfissional(profissionalParaExcluir.id);
           }
           setProfissionalParaExcluir(null);
         }}

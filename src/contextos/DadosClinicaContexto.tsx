@@ -1,25 +1,35 @@
-import { PropsWithChildren, createContext, useCallback, useContext, useMemo, useState } from 'react';
-
-import { obterDadosSimulados } from '@/src/dados/dadosSimulados';
 import {
-  cancelarAtendimento as cancelarAtendimentoMock,
-  criarAtendimento as criarAtendimentoMock,
-  editarAtendimento as editarAtendimentoMock,
+  PropsWithChildren,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+import {
   listarAtendimentosDoDia as listarAtendimentosDoDiaMock,
   listarHistoricoDoPaciente as listarHistoricoDoPacienteMock,
 } from '@/src/servicos/atendimentos';
 import {
-  criarPaciente as criarPacienteMock,
-  editarPaciente as editarPacienteMock,
-  excluirPaciente as excluirPacienteMock,
   listarPacientes as listarPacientesMock,
 } from '@/src/servicos/pacientes';
 import {
-  criarProfissional as criarProfissionalMock,
-  editarProfissional as editarProfissionalMock,
-  excluirProfissional as excluirProfissionalMock,
   listarProfissionais as listarProfissionaisMock,
 } from '@/src/servicos/profissionais';
+import {
+  cancelarAtendimentoSupabase,
+  criarAtendimentoSupabase,
+  criarPacienteSupabase,
+  criarProfissionalSupabase,
+  editarAtendimentoSupabase,
+  editarPacienteSupabase,
+  editarProfissionalSupabase,
+  excluirPacienteSupabase,
+  excluirProfissionalSupabase,
+  listarDadosClinicaSupabase,
+} from '@/src/servicos/clinicaSupabase';
 import {
   Atendimento,
   AtendimentoComRelacionamentos,
@@ -36,29 +46,55 @@ type DadosClinicaContextoValor = {
   pacientes: Paciente[];
   profissionais: Profissional[];
   atendimentos: Atendimento[];
+  carregando: boolean;
+  erro: string | null;
+  recarregarDados: () => Promise<void>;
   listarAtendimentosDoDia: (data: string, profissionalId?: string) => AtendimentoComRelacionamentos[];
   listarHistoricoDoPaciente: (pacienteId: string) => AtendimentoComRelacionamentos[];
   obterPaciente: (pacienteId: string) => Paciente | undefined;
   obterProfissional: (profissionalId: string) => Profissional | undefined;
   obterAtendimento: (atendimentoId: string) => AtendimentoComRelacionamentos | undefined;
-  criarPaciente: (dados: DadosPaciente) => Paciente;
-  editarPaciente: (pacienteId: string, dados: DadosPaciente) => void;
-  excluirPaciente: (pacienteId: string) => void;
-  criarProfissional: (dados: DadosProfissional) => Profissional;
-  editarProfissional: (profissionalId: string, dados: DadosProfissional) => void;
-  excluirProfissional: (profissionalId: string) => void;
-  criarAtendimento: (dados: DadosNovoAtendimento) => Atendimento;
-  editarAtendimento: (atendimentoId: string, dados: DadosEdicaoAtendimento) => void;
-  cancelarAtendimento: (atendimentoId: string) => void;
+  criarPaciente: (dados: DadosPaciente) => Promise<Paciente>;
+  editarPaciente: (pacienteId: string, dados: DadosPaciente) => Promise<void>;
+  excluirPaciente: (pacienteId: string) => Promise<void>;
+  criarProfissional: (dados: DadosProfissional) => Promise<Profissional>;
+  editarProfissional: (profissionalId: string, dados: DadosProfissional) => Promise<void>;
+  excluirProfissional: (profissionalId: string) => Promise<void>;
+  criarAtendimento: (dados: DadosNovoAtendimento) => Promise<Atendimento>;
+  editarAtendimento: (atendimentoId: string, dados: DadosEdicaoAtendimento) => Promise<void>;
+  cancelarAtendimento: (atendimentoId: string) => Promise<void>;
 };
 
 const DadosClinicaContexto = createContext<DadosClinicaContextoValor | null>(null);
 
 export function DadosClinicaProvider({ children }: PropsWithChildren) {
-  const dadosIniciais = useMemo(() => obterDadosSimulados(), []);
-  const [pacientes, setPacientes] = useState(dadosIniciais.pacientes);
-  const [profissionais, setProfissionais] = useState(dadosIniciais.profissionais);
-  const [atendimentos, setAtendimentos] = useState(dadosIniciais.atendimentos);
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [profissionais, setProfissionais] = useState<Profissional[]>([]);
+  const [atendimentos, setAtendimentos] = useState<AtendimentoComRelacionamentos[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const recarregarDados = useCallback(async () => {
+    setCarregando(true);
+    setErro(null);
+
+    try {
+      const dados = await listarDadosClinicaSupabase();
+      setPacientes(dados.pacientes);
+      setProfissionais(dados.profissionais);
+      setAtendimentos(dados.atendimentos);
+    } catch (error) {
+      const mensagem = error instanceof Error ? error.message : 'Erro ao carregar dados do Supabase.';
+      setErro(mensagem);
+      console.error(mensagem);
+    } finally {
+      setCarregando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    recarregarDados();
+  }, [recarregarDados]);
 
   const obterPaciente = useCallback(
     (pacienteId: string) => pacientes.find((paciente) => paciente.id === pacienteId),
@@ -100,69 +136,73 @@ export function DadosClinicaProvider({ children }: PropsWithChildren) {
     [atendimentos, relacionarAtendimento],
   );
 
-  const criarPaciente = useCallback((dados: DadosPaciente) => {
-    const paciente = criarPacienteMock(dados);
+  const criarPaciente = useCallback(async (dados: DadosPaciente) => {
+    const paciente = await criarPacienteSupabase(dados);
     setPacientes((atuais) => listarPacientesMock([...atuais, paciente]));
     return paciente;
   }, []);
 
-  const editarPaciente = useCallback((pacienteId: string, dados: DadosPaciente) => {
+  const editarPaciente = useCallback(async (pacienteId: string, dados: DadosPaciente) => {
+    const pacienteEditado = await editarPacienteSupabase(pacienteId, dados);
     setPacientes((atuais) =>
       listarPacientesMock(
-        atuais.map((paciente) =>
-          paciente.id === pacienteId ? editarPacienteMock(paciente, dados) : paciente,
-        ),
+        atuais.map((paciente) => (paciente.id === pacienteId ? pacienteEditado : paciente)),
       ),
     );
   }, []);
 
-  const excluirPaciente = useCallback((pacienteId: string) => {
-    setPacientes((atuais) => excluirPacienteMock(atuais, pacienteId));
+  const excluirPaciente = useCallback(async (pacienteId: string) => {
+    await excluirPacienteSupabase(pacienteId);
+    setPacientes((atuais) => atuais.filter((paciente) => paciente.id !== pacienteId));
   }, []);
 
-  const criarProfissional = useCallback((dados: DadosProfissional) => {
-    const profissional = criarProfissionalMock(dados);
+  const criarProfissional = useCallback(async (dados: DadosProfissional) => {
+    const profissional = await criarProfissionalSupabase(dados);
     setProfissionais((atuais) => listarProfissionaisMock([...atuais, profissional]));
     return profissional;
   }, []);
 
-  const editarProfissional = useCallback((profissionalId: string, dados: DadosProfissional) => {
+  const editarProfissional = useCallback(async (profissionalId: string, dados: DadosProfissional) => {
+    const profissionalEditado = await editarProfissionalSupabase(profissionalId, dados);
     setProfissionais((atuais) =>
       listarProfissionaisMock(
         atuais.map((profissional) =>
-          profissional.id === profissionalId
-            ? editarProfissionalMock(profissional, dados)
-            : profissional,
+          profissional.id === profissionalId ? profissionalEditado : profissional,
         ),
       ),
     );
   }, []);
 
-  const excluirProfissional = useCallback((profissionalId: string) => {
-    setProfissionais((atuais) => excluirProfissionalMock(atuais, profissionalId));
+  const excluirProfissional = useCallback(async (profissionalId: string) => {
+    await excluirProfissionalSupabase(profissionalId);
+    setProfissionais((atuais) =>
+      atuais.filter((profissional) => profissional.id !== profissionalId),
+    );
   }, []);
 
-  const criarAtendimento = useCallback((dados: DadosNovoAtendimento) => {
-    const atendimento = criarAtendimentoMock(dados);
+  const criarAtendimento = useCallback(async (dados: DadosNovoAtendimento) => {
+    const atendimento = await criarAtendimentoSupabase(dados);
     setAtendimentos((atuais) => [...atuais, atendimento]);
     return atendimento;
   }, []);
 
   const editarAtendimento = useCallback(
-    (atendimentoId: string, dados: DadosEdicaoAtendimento) => {
+    async (atendimentoId: string, dados: DadosEdicaoAtendimento) => {
+      const atendimentoEditado = await editarAtendimentoSupabase(atendimentoId, dados);
       setAtendimentos((atuais) =>
         atuais.map((atendimento) =>
-          atendimento.id === atendimentoId ? editarAtendimentoMock(atendimento, dados) : atendimento,
+          atendimento.id === atendimentoId ? atendimentoEditado : atendimento,
         ),
       );
     },
     [],
   );
 
-  const cancelarAtendimento = useCallback((atendimentoId: string) => {
+  const cancelarAtendimento = useCallback(async (atendimentoId: string) => {
+    const atendimentoCancelado = await cancelarAtendimentoSupabase(atendimentoId);
     setAtendimentos((atuais) =>
       atuais.map((atendimento) =>
-        atendimento.id === atendimentoId ? cancelarAtendimentoMock(atendimento) : atendimento,
+        atendimento.id === atendimentoId ? atendimentoCancelado : atendimento,
       ),
     );
   }, []);
@@ -172,6 +212,9 @@ export function DadosClinicaProvider({ children }: PropsWithChildren) {
       pacientes: listarPacientesMock(pacientes),
       profissionais: listarProfissionaisMock(profissionais),
       atendimentos,
+      carregando,
+      erro,
+      recarregarDados,
       listarAtendimentosDoDia,
       listarHistoricoDoPaciente,
       obterPaciente,
@@ -196,8 +239,10 @@ export function DadosClinicaProvider({ children }: PropsWithChildren) {
       editarAtendimento,
       editarPaciente,
       editarProfissional,
+      erro,
       excluirPaciente,
       excluirProfissional,
+      carregando,
       listarAtendimentosDoDia,
       listarHistoricoDoPaciente,
       obterAtendimento,
@@ -205,6 +250,7 @@ export function DadosClinicaProvider({ children }: PropsWithChildren) {
       obterProfissional,
       pacientes,
       profissionais,
+      recarregarDados,
     ],
   );
 

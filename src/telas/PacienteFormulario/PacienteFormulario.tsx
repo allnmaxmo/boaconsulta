@@ -24,6 +24,7 @@ export function PacienteFormulario({ pacienteId }: PacienteFormularioProps) {
   const editando = Boolean(paciente);
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   const {
@@ -40,17 +41,22 @@ export function PacienteFormulario({ pacienteId }: PacienteFormularioProps) {
 
   async function salvar(dados: CamposPaciente) {
     setEnviando(true);
-    await new Promise((resolve) => setTimeout(resolve, 650));
+    setErroEnvio(null);
 
-    if (editando && pacienteId) {
-      editarPaciente(pacienteId, dados);
-    } else {
-      criarPaciente(dados);
+    try {
+      if (editando && pacienteId) {
+        await editarPaciente(pacienteId, dados);
+      } else {
+        await criarPaciente(dados);
+      }
+
+      setSucesso(true);
+      setTimeout(() => router.back(), 650);
+    } catch (error) {
+      setErroEnvio(error instanceof Error ? error.message : 'Erro ao salvar paciente.');
+    } finally {
+      setEnviando(false);
     }
-
-    setEnviando(false);
-    setSucesso(true);
-    setTimeout(() => router.back(), 650);
   }
 
   return (
@@ -61,6 +67,7 @@ export function PacienteFormulario({ pacienteId }: PacienteFormularioProps) {
       />
 
       {sucesso ? <AvisoSucesso mensagem="Paciente salvo com sucesso." /> : null}
+      {erroEnvio ? <AvisoSucesso mensagem={erroEnvio} /> : null}
 
       <Controller
         control={control}
@@ -105,15 +112,20 @@ export function PacienteFormulario({ pacienteId }: PacienteFormularioProps) {
       <ModalConfirmacao
         visivel={confirmandoExclusao}
         titulo="Excluir paciente?"
-        descricao={`O cadastro de ${paciente?.nome ?? 'paciente'} será removido desta simulação.`}
+        descricao={`O cadastro de ${paciente?.nome ?? 'paciente'} será removido do banco.`}
         textoConfirmar="Excluir"
         onCancelar={() => setConfirmandoExclusao(false)}
-        onConfirmar={() => {
+        onConfirmar={async () => {
           if (pacienteId) {
-            excluirPaciente(pacienteId);
+            try {
+              await excluirPaciente(pacienteId);
+              setConfirmandoExclusao(false);
+              router.replace(rotaApp('/pacientes'));
+            } catch (error) {
+              setErroEnvio(error instanceof Error ? error.message : 'Erro ao excluir paciente.');
+              setConfirmandoExclusao(false);
+            }
           }
-          setConfirmandoExclusao(false);
-          router.replace(rotaApp('/pacientes'));
         }}
       />
     </ContainerTela>

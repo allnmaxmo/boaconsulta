@@ -7,6 +7,7 @@ const configuracaoStatus: Record<StatusAtendimento, { rotulo: string; cor: strin
   agendado: { rotulo: 'Agendado', cor: cores.azulProfundo, fundo: cores.lilasSuave, borda: 'rgba(139,92,246,0.20)' },
   realizado: { rotulo: 'Realizado', cor: cores.verde, fundo: cores.verdeSuave, borda: 'rgba(22,163,74,0.18)' },
   cancelado: { rotulo: 'Cancelado', cor: cores.vermelho, fundo: cores.vermelhoSuave, borda: 'rgba(220,38,38,0.16)' },
+  falta: { rotulo: 'Falta', cor: cores.laranja, fundo: cores.laranjaSuave, borda: 'rgba(245,158,11,0.18)' },
 };
 
 type SeloStatusProps = {

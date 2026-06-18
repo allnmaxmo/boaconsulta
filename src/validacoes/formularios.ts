@@ -21,7 +21,7 @@ export const atendimentoSchema = z.object({
 });
 
 export const atendimentoEdicaoSchema = atendimentoSchema.extend({
-  status: z.enum(['agendado', 'realizado', 'cancelado'], {
+  status: z.enum(['agendado', 'realizado', 'cancelado', 'falta'], {
     message: 'Status é obrigatório.',
   }),
 });

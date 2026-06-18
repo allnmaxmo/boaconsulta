@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BotaoAcaoFlutuante } from '@/src/componentes/interface/BotaoAcaoFlutuante';
@@ -16,15 +16,9 @@ import { rotaApp } from '@/src/utilitarios/rotas';
 
 export function Pacientes() {
   const router = useRouter();
-  const { pacientes, excluirPaciente } = useDadosClinica();
+  const { pacientes, excluirPaciente, carregando, erro } = useDadosClinica();
   const [busca, setBusca] = useState('');
-  const [carregando, setCarregando] = useState(true);
   const [pacienteParaExcluir, setPacienteParaExcluir] = useState<Paciente | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setCarregando(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const pacientesFiltrados = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase('pt-BR');
@@ -52,6 +46,8 @@ export function Pacientes() {
 
         {carregando ? (
           <EstadoCarregamento />
+        ) : erro ? (
+          <EstadoVazio titulo="Não foi possível carregar pacientes" descricao={erro} icone="cloud-off" />
         ) : pacientesFiltrados.length === 0 ? (
           <EstadoVazio
             titulo={busca ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado'}
@@ -84,12 +80,12 @@ export function Pacientes() {
       <ModalConfirmacao
         visivel={Boolean(pacienteParaExcluir)}
         titulo="Excluir paciente?"
-        descricao={`O cadastro de ${pacienteParaExcluir?.nome ?? 'paciente'} será removido desta simulação.`}
+        descricao={`O cadastro de ${pacienteParaExcluir?.nome ?? 'paciente'} será removido do banco.`}
         textoConfirmar="Excluir"
         onCancelar={() => setPacienteParaExcluir(null)}
-        onConfirmar={() => {
+        onConfirmar={async () => {
           if (pacienteParaExcluir) {
-            excluirPaciente(pacienteParaExcluir.id);
+            await excluirPaciente(pacienteParaExcluir.id);
           }
           setPacienteParaExcluir(null);
         }}

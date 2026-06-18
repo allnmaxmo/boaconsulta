@@ -27,6 +27,7 @@ const opcoesStatus: { rotulo: string; valor: StatusAtendimento }[] = [
   { rotulo: 'Agendado', valor: 'agendado' },
   { rotulo: 'Realizado', valor: 'realizado' },
   { rotulo: 'Cancelado', valor: 'cancelado' },
+  { rotulo: 'Falta', valor: 'falta' },
 ];
 
 export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioProps) {
@@ -43,6 +44,7 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
   const editando = Boolean(atendimento);
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
   const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
 
   const {
@@ -63,38 +65,47 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
 
   async function salvar(dados: AtendimentoEdicaoFormulario) {
     setEnviando(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    setErroEnvio(null);
 
     const dataHora = montarDataHora(dados.data, dados.horario);
 
-    if (editando && atendimentoId) {
-      editarAtendimento(atendimentoId, {
-        pacienteId: dados.pacienteId,
-        profissionalId: dados.profissionalId,
-        dataHora,
-        tipoAtendimento: dados.tipoAtendimento,
-        status: dados.status,
-      });
-    } else {
-      criarAtendimento({
-        pacienteId: dados.pacienteId,
-        profissionalId: dados.profissionalId,
-        dataHora,
-        tipoAtendimento: dados.tipoAtendimento,
-      });
-    }
+    try {
+      if (editando && atendimentoId) {
+        await editarAtendimento(atendimentoId, {
+          pacienteId: dados.pacienteId,
+          profissionalId: dados.profissionalId,
+          dataHora,
+          tipoAtendimento: dados.tipoAtendimento,
+          status: dados.status,
+        });
+      } else {
+        await criarAtendimento({
+          pacienteId: dados.pacienteId,
+          profissionalId: dados.profissionalId,
+          dataHora,
+          tipoAtendimento: dados.tipoAtendimento,
+        });
+      }
 
-    setEnviando(false);
-    setSucesso(true);
-    setTimeout(() => router.back(), 650);
+      setSucesso(true);
+      setTimeout(() => router.back(), 650);
+    } catch (error) {
+      setErroEnvio(error instanceof Error ? error.message : 'Erro ao salvar agendamento.');
+    } finally {
+      setEnviando(false);
+    }
   }
 
-  function confirmarCancelamento() {
+  async function confirmarCancelamento() {
     if (atendimentoId) {
-      cancelarAtendimento(atendimentoId);
-      setSucesso(true);
-      setConfirmandoCancelamento(false);
-      setTimeout(() => router.back(), 650);
+      try {
+        await cancelarAtendimento(atendimentoId);
+        setSucesso(true);
+        setConfirmandoCancelamento(false);
+        setTimeout(() => router.back(), 650);
+      } catch (error) {
+        setErroEnvio(error instanceof Error ? error.message : 'Erro ao cancelar atendimento.');
+      }
     }
   }
 
@@ -102,10 +113,11 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
     <ContainerTela>
       <Cabecalho
         titulo={editando ? 'Editar Agendamento' : 'Novo Agendamento'}
-        subtitulo={editando ? 'Atualize dados e status do atendimento' : 'Cadastre um atendimento local'}
+        subtitulo={editando ? 'Atualize dados e status do atendimento' : 'Cadastre um atendimento'}
       />
 
       {sucesso ? <AvisoSucesso mensagem="Agendamento salvo com sucesso." /> : null}
+      {erroEnvio ? <AvisoSucesso mensagem={erroEnvio} /> : null}
 
       <Controller
         control={control}

@@ -28,7 +28,7 @@ export function PerfilPaciente() {
         <Cabecalho titulo="Paciente" subtitulo="Cadastro não encontrado" />
         <EstadoVazio
           titulo="Paciente não encontrado"
-          descricao="Este cadastro pode ter sido excluído da simulação."
+          descricao="Este cadastro pode ter sido excluído do banco."
           icone="person-off"
         />
         <Botao titulo="Voltar para pacientes" onPress={() => router.replace(rotaApp('/pacientes'))} />
@@ -92,11 +92,11 @@ export function PerfilPaciente() {
       <ModalConfirmacao
         visivel={confirmandoExclusao}
         titulo="Excluir paciente?"
-        descricao={`O cadastro de ${paciente.nome} será removido desta simulação.`}
+        descricao={`O cadastro de ${paciente.nome} será removido do banco.`}
         textoConfirmar="Excluir"
         onCancelar={() => setConfirmandoExclusao(false)}
-        onConfirmar={() => {
-          excluirPaciente(paciente.id);
+        onConfirmar={async () => {
+          await excluirPaciente(paciente.id);
           setConfirmandoExclusao(false);
           router.replace(rotaApp('/pacientes'));
         }}

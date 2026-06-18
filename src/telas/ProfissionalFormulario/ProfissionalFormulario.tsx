@@ -28,6 +28,7 @@ export function ProfissionalFormulario({ profissionalId }: ProfissionalFormulari
   const editando = Boolean(profissional);
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   const {
@@ -44,17 +45,22 @@ export function ProfissionalFormulario({ profissionalId }: ProfissionalFormulari
 
   async function salvar(dados: CamposProfissional) {
     setEnviando(true);
-    await new Promise((resolve) => setTimeout(resolve, 650));
+    setErroEnvio(null);
 
-    if (editando && profissionalId) {
-      editarProfissional(profissionalId, dados);
-    } else {
-      criarProfissional(dados);
+    try {
+      if (editando && profissionalId) {
+        await editarProfissional(profissionalId, dados);
+      } else {
+        await criarProfissional(dados);
+      }
+
+      setSucesso(true);
+      setTimeout(() => router.back(), 650);
+    } catch (error) {
+      setErroEnvio(error instanceof Error ? error.message : 'Erro ao salvar profissional.');
+    } finally {
+      setEnviando(false);
     }
-
-    setEnviando(false);
-    setSucesso(true);
-    setTimeout(() => router.back(), 650);
   }
 
   return (
@@ -65,6 +71,7 @@ export function ProfissionalFormulario({ profissionalId }: ProfissionalFormulari
       />
 
       {sucesso ? <AvisoSucesso mensagem="Profissional salvo com sucesso." /> : null}
+      {erroEnvio ? <AvisoSucesso mensagem={erroEnvio} /> : null}
 
       <Controller
         control={control}
@@ -108,15 +115,20 @@ export function ProfissionalFormulario({ profissionalId }: ProfissionalFormulari
       <ModalConfirmacao
         visivel={confirmandoExclusao}
         titulo="Excluir profissional?"
-        descricao={`O cadastro de ${profissional?.nome ?? 'profissional'} será removido desta simulação.`}
+        descricao={`O cadastro de ${profissional?.nome ?? 'profissional'} será removido do banco.`}
         textoConfirmar="Excluir"
         onCancelar={() => setConfirmandoExclusao(false)}
-        onConfirmar={() => {
+        onConfirmar={async () => {
           if (profissionalId) {
-            excluirProfissional(profissionalId);
+            try {
+              await excluirProfissional(profissionalId);
+              setConfirmandoExclusao(false);
+              router.replace(rotaApp('/profissionais'));
+            } catch (error) {
+              setErroEnvio(error instanceof Error ? error.message : 'Erro ao excluir profissional.');
+              setConfirmandoExclusao(false);
+            }
           }
-          setConfirmandoExclusao(false);
-          router.replace(rotaApp('/profissionais'));
         }}
       />
     </ContainerTela>

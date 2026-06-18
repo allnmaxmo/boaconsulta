@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { CartaoAtendimento } from '@/src/componentes/agenda/CartaoAtendimento';
@@ -16,15 +16,9 @@ import { rotaApp } from '@/src/utilitarios/rotas';
 
 export function AgendaDoDia() {
   const router = useRouter();
-  const { profissionais, listarAtendimentosDoDia } = useDadosClinica();
+  const { profissionais, listarAtendimentosDoDia, carregando, erro } = useDadosClinica();
   const [profissionalFiltro, setProfissionalFiltro] = useState('todos');
-  const [carregando, setCarregando] = useState(true);
   const dataHoje = dataISOHoje();
-
-  useEffect(() => {
-    const timer = setTimeout(() => setCarregando(false), 520);
-    return () => clearTimeout(timer);
-  }, []);
 
   const atendimentos = listarAtendimentosDoDia(
     dataHoje,
@@ -62,6 +56,8 @@ export function AgendaDoDia() {
 
         {carregando ? (
           <EstadoCarregamento />
+        ) : erro ? (
+          <EstadoVazio titulo="Não foi possível carregar a agenda" descricao={erro} icone="cloud-off" />
         ) : atendimentos.length === 0 ? (
           <EstadoVazio
             titulo={

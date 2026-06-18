@@ -1,15 +1,19 @@
-export type StatusAtendimento = 'agendado' | 'realizado' | 'cancelado';
+export type StatusAtendimento = 'agendado' | 'realizado' | 'cancelado' | 'falta';
 
 export type Paciente = {
   id: string;
   nome: string;
   telefone: string;
+  email?: string;
+  observacoes?: string;
 };
 
 export type Profissional = {
   id: string;
   nome: string;
   especialidade: string;
+  telefone?: string;
+  ativo?: boolean;
 };
 
 export type Atendimento = {
@@ -19,6 +23,8 @@ export type Atendimento = {
   dataHora: string;
   tipoAtendimento: string;
   status: StatusAtendimento;
+  duracaoMinutos?: number;
+  observacoes?: string;
 };
 
 export type DadosClinica = {
