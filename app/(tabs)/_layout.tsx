@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 
-import { HapticTab } from '@/components/haptic-tab';
+import { HapticTab } from '@/src/componentes/interface/HapticTab';
 import { cores } from '@/src/constantes/tema';
 
 export default function TabLayout() {
