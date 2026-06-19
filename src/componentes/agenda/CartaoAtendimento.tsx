@@ -9,13 +9,14 @@ import { SeloStatus } from '@/src/componentes/agenda/SeloStatus';
 import { movimento } from '@/src/constantes/movimento';
 import { cores, raios } from '@/src/constantes/tema';
 import { AtendimentoComRelacionamentos } from '@/src/tipos/dominio';
-import { obterHorario } from '@/src/utilitarios/data';
+import { formatarDataCurta, obterHorario } from '@/src/utilitarios/data';
 
 type CartaoAtendimentoProps = {
   atendimento: AtendimentoComRelacionamentos;
   indice?: number;
   onPress?: () => void;
   onPacientePress?: () => void;
+  mostrarData?: boolean;
 };
 
 export function CartaoAtendimento({
@@ -23,6 +24,7 @@ export function CartaoAtendimento({
   indice = 0,
   onPress,
   onPacientePress,
+  mostrarData = false,
 }: CartaoAtendimentoProps) {
   return (
     <Animated.View
@@ -35,6 +37,9 @@ export function CartaoAtendimento({
         <GlassSurface style={styles.cartao} contentStyle={styles.cartaoConteudo} intensity={84}>
           <View style={styles.hora}>
             <Text style={styles.horaTexto}>{obterHorario(atendimento.dataHora)}</Text>
+            {mostrarData ? (
+              <Text style={styles.dataTexto}>{formatarDataCurta(atendimento.dataHora)}</Text>
+            ) : null}
           </View>
           <View style={styles.conteudo}>
             <View style={styles.topo}>
@@ -75,7 +80,7 @@ const styles = StyleSheet.create({
   },
   hora: {
     minWidth: 70,
-    height: 56,
+    minHeight: 56,
     borderRadius: raios.lg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -87,6 +92,12 @@ const styles = StyleSheet.create({
     color: cores.azulProfundo,
     fontSize: 17,
     fontWeight: '800',
+  },
+  dataTexto: {
+    color: cores.textoSuave,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 2,
   },
   conteudo: {
     flex: 1,

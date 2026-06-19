@@ -14,7 +14,7 @@ import { CartaoAtendimento } from '@/src/componentes/agenda/CartaoAtendimento';
 import { EstadoCarregamento } from '@/src/componentes/interface/EstadoCarregamento';
 import { EstadoVazio } from '@/src/componentes/interface/EstadoVazio';
 import { useDadosClinica } from '@/src/contextos/DadosClinicaContexto';
-import { dataISOHoje, formatarDataLonga } from '@/src/utilitarios/data';
+import { dataISOHoje, formatarDataLonga, obterData } from '@/src/utilitarios/data';
 import { rotaApp } from '@/src/utilitarios/rotas';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -51,6 +51,47 @@ const RADIUS = {
 /** Cartão glassmorphism envolve o conteúdo */
 function GlassCard({ children, style }: { children: React.ReactNode; style?: object }) {
   return <View style={[styles.glassCard, style]}>{children}</View>;
+}
+
+type ModoAgenda = 'dia' | 'semana';
+
+function formatarDataISO(data: Date) {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+function obterPeriodoSemana(dataBase: Date) {
+  const inicio = new Date(dataBase);
+  const diaSemana = inicio.getDay();
+  const deslocamento = diaSemana === 0 ? -6 : 1 - diaSemana;
+  inicio.setDate(inicio.getDate() + deslocamento);
+  inicio.setHours(0, 0, 0, 0);
+
+  const fim = new Date(inicio);
+  fim.setDate(inicio.getDate() + 6);
+  fim.setHours(23, 59, 59, 999);
+
+  return {
+    inicio,
+    fim,
+    inicioISO: formatarDataISO(inicio),
+    fimISO: formatarDataISO(fim),
+  };
+}
+
+function calcularTaxaComparecimento(atendimentos: { status: string }[]) {
+  const concluidos = atendimentos.filter((atendimento) =>
+    ['realizado', 'falta'].includes(atendimento.status),
+  );
+
+  if (concluidos.length === 0) {
+    return null;
+  }
+
+  const realizados = concluidos.filter((atendimento) => atendimento.status === 'realizado');
+  return Math.round((realizados.length / concluidos.length) * 100);
 }
 
 /** Chip de filtro individual */
@@ -92,30 +133,84 @@ export function AgendaDoDia() {
   const {
     atendimentos: todosAtendimentos,
     profissionais,
-    listarAtendimentosDoDia,
     carregando,
     erro,
     perfilUsuario,
   } = useDadosClinica();
   const [profissionalFiltro, setProfissionalFiltro] = useState('todos');
+  const [modoAgenda, setModoAgenda] = useState<ModoAgenda>('dia');
   const dataHoje = dataISOHoje();
+  const periodoSemana = obterPeriodoSemana(new Date());
   const cargo = perfilUsuario?.cargo;
   const podeGerenciarClinica = cargo === 'administrador' || cargo === 'atendente';
+  const podeVerSemana = podeGerenciarClinica || cargo === 'profissional';
   const profissionalLogado = profissionais.find(
     (profissional) => profissional.usuarioId === perfilUsuario?.id,
   );
-  const atendimentosPaciente = todosAtendimentos
-    .filter((atendimento) => atendimento.paciente?.usuarioId === perfilUsuario?.id)
-    .sort((a, b) => a.dataHora.localeCompare(b.dataHora));
-  const atendimentosProfissional = todosAtendimentos
-    .filter((atendimento) => atendimento.profissionalId === profissionalLogado?.id)
-    .sort((a, b) => a.dataHora.localeCompare(b.dataHora));
+  const profissionalSelecionadoId = podeGerenciarClinica
+    ? profissionalFiltro === 'todos'
+      ? undefined
+      : profissionalFiltro
+    : profissionalLogado?.id;
 
-  const atendimentos = podeGerenciarClinica
-    ? listarAtendimentosDoDia(dataHoje, profissionalFiltro === 'todos' ? undefined : profissionalFiltro)
-    : cargo === 'paciente'
-      ? atendimentosPaciente
-      : atendimentosProfissional;
+  const atendimentosBase = useMemo(() => {
+    if (podeGerenciarClinica) {
+      return profissionalSelecionadoId
+        ? todosAtendimentos.filter((atendimento) => atendimento.profissionalId === profissionalSelecionadoId)
+        : todosAtendimentos;
+    }
+
+    if (cargo === 'paciente') {
+      return todosAtendimentos.filter(
+        (atendimento) => atendimento.paciente?.usuarioId === perfilUsuario?.id,
+      );
+    }
+
+    return todosAtendimentos.filter(
+      (atendimento) => atendimento.profissionalId === profissionalLogado?.id,
+    );
+  }, [
+    cargo,
+    perfilUsuario?.id,
+    podeGerenciarClinica,
+    profissionalLogado?.id,
+    profissionalSelecionadoId,
+    todosAtendimentos,
+  ]);
+
+  const atendimentos = useMemo(() => {
+    const lista =
+      modoAgenda === 'dia' || !podeVerSemana
+        ? atendimentosBase.filter((atendimento) => obterData(atendimento.dataHora) === dataHoje)
+        : atendimentosBase.filter((atendimento) => {
+            const dataAtendimento = obterData(atendimento.dataHora);
+            return dataAtendimento >= periodoSemana.inicioISO && dataAtendimento <= periodoSemana.fimISO;
+          });
+
+    return [...lista].sort((a, b) => a.dataHora.localeCompare(b.dataHora));
+  }, [
+    atendimentosBase,
+    dataHoje,
+    modoAgenda,
+    periodoSemana.fimISO,
+    periodoSemana.inicioISO,
+    podeVerSemana,
+  ]);
+
+  const atendimentosParaTaxa = useMemo(() => {
+    if (cargo === 'profissional' || profissionalSelecionadoId) {
+      return todosAtendimentos.filter(
+        (atendimento) => atendimento.profissionalId === profissionalSelecionadoId,
+      );
+    }
+
+    if (podeGerenciarClinica) {
+      return todosAtendimentos;
+    }
+
+    return [];
+  }, [cargo, podeGerenciarClinica, profissionalSelecionadoId, todosAtendimentos]);
+  const taxaComparecimento = calcularTaxaComparecimento(atendimentosParaTaxa);
 
   const opcoesProfissionais = useMemo<{ rotulo: string; valor: string; detalhe?: string }[]>(
     () => [
@@ -195,6 +290,61 @@ export function AgendaDoDia() {
           </GlassCard>
         )}
 
+        {podeVerSemana ? (
+          <View style={styles.secao}>
+            <Text style={styles.secaoLabel}>VISÃO DA AGENDA</Text>
+            <View style={styles.segmento}>
+              <Pressable
+                onPress={() => setModoAgenda('dia')}
+                style={[styles.segmentoOpcao, modoAgenda === 'dia' && styles.segmentoOpcaoAtiva]}
+              >
+                <Text
+                  style={[
+                    styles.segmentoTexto,
+                    modoAgenda === 'dia' && styles.segmentoTextoAtivo,
+                  ]}
+                >
+                  Hoje
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setModoAgenda('semana')}
+                style={[styles.segmentoOpcao, modoAgenda === 'semana' && styles.segmentoOpcaoAtiva]}
+              >
+                <Text
+                  style={[
+                    styles.segmentoTexto,
+                    modoAgenda === 'semana' && styles.segmentoTextoAtivo,
+                  ]}
+                >
+                  Semana
+                </Text>
+              </Pressable>
+            </View>
+            {modoAgenda === 'semana' ? (
+              <Text style={styles.periodoTexto}>
+                {formatarDataLonga(periodoSemana.inicio)} até {formatarDataLonga(periodoSemana.fim)}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {podeVerSemana ? (
+          <GlassCard style={styles.metricasCard}>
+            <View style={styles.metricaItem}>
+              <Text style={styles.metricaValor}>
+                {taxaComparecimento === null ? '—' : `${taxaComparecimento}%`}
+              </Text>
+              <Text style={styles.metricaRotulo}>TAXA DE COMPARECIMENTO</Text>
+            </View>
+            <View style={styles.metricaDivisor} />
+            <View style={styles.metricaItem}>
+              <Text style={styles.metricaValor}>{atendimentosParaTaxa.length}</Text>
+              <Text style={styles.metricaRotulo}>ATENDIMENTOS NO HISTÓRICO</Text>
+            </View>
+          </GlassCard>
+        ) : null}
+
         {/* ── Lista de atendimentos ── */}
         <View style={styles.secao}>
           {carregando ? (
@@ -227,6 +377,7 @@ export function AgendaDoDia() {
                   key={atendimento.id}
                   atendimento={atendimento}
                   indice={indice}
+                  mostrarData={modoAgenda === 'semana' && podeVerSemana}
                   onPress={
                     podeGerenciarClinica
                       ? () =>
@@ -385,6 +536,38 @@ const styles = StyleSheet.create({
     color: COLORS.onSurfaceVariant,
     marginTop: 2,
   },
+  segmento: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+    borderRadius: RADIUS.xl,
+    padding: 4,
+    gap: 4,
+  },
+  segmentoOpcao: {
+    flex: 1,
+    borderRadius: RADIUS.lg,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  segmentoOpcaoAtiva: {
+    backgroundColor: COLORS.glassButton,
+  },
+  segmentoTexto: {
+    color: COLORS.onSurfaceVariant,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  segmentoTextoAtivo: {
+    color: COLORS.onPrimary,
+  },
+  periodoTexto: {
+    color: COLORS.onSurfaceVariant,
+    fontSize: 13,
+    fontWeight: '600',
+    paddingHorizontal: 2,
+  },
 
   // ── Lista ──
   lista: {
@@ -407,6 +590,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
     textAlign: 'center',
+  },
+  metricasCard: {
+    borderRadius: RADIUS['2xl'],
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  metricaItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  metricaValor: {
+    color: COLORS.primary,
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  metricaRotulo: {
+    color: COLORS.onSurfaceVariant,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textAlign: 'center',
+  },
+  metricaDivisor: {
+    width: 1,
+    height: 44,
+    backgroundColor: COLORS.outlineVariant,
+    opacity: 0.55,
   },
 
   // ── Glass card base ──
