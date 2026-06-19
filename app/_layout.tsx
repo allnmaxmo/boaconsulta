@@ -34,33 +34,6 @@ function TelaCarregandoSessao() {
   );
 }
 
-function StackPublica() {
-  return (
-    <Stack initialRouteName="login" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="cadastro" />
-      <Stack.Screen name="recuperar-senha" />
-    </Stack>
-  );
-}
-
-function StackPrivada() {
-  return (
-    <DadosClinicaProvider>
-      <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="agendamento/novo" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="agendamento/[id]" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="pacientes/novo" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="pacientes/[id]/editar" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="pacientes/[id]/index" />
-        <Stack.Screen name="profissionais/novo" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="profissionais/[id]" options={{ presentation: 'modal' }} />
-      </Stack>
-    </DadosClinicaProvider>
-  );
-}
-
 export default function RootLayout() {
   const [sessao, setSessao] = useState<Session | null>(null);
   const [carregandoSessao, setCarregandoSessao] = useState(true);
@@ -81,7 +54,30 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={temaBoaConsulta}>
-      {carregandoSessao ? <TelaCarregandoSessao /> : sessao ? <StackPrivada /> : <StackPublica />}
+      <DadosClinicaProvider sessaoAtiva={!!sessao}>
+        {carregandoSessao ? (
+          <TelaCarregandoSessao />
+        ) : (
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Protected guard={!sessao}>
+              <Stack.Screen name="login" />
+              <Stack.Screen name="cadastro" />
+              <Stack.Screen name="recuperar-senha" />
+            </Stack.Protected>
+
+            <Stack.Protected guard={!!sessao}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="agendamento/novo" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="agendamento/[id]" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="pacientes/novo" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="pacientes/[id]/editar" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="pacientes/[id]/index" />
+              <Stack.Screen name="profissionais/novo" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="profissionais/[id]" options={{ presentation: 'modal' }} />
+            </Stack.Protected>
+          </Stack>
+        )}
+      </DadosClinicaProvider>
       <StatusBar style="dark" />
     </ThemeProvider>
   );

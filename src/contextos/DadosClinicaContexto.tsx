@@ -67,7 +67,11 @@ type DadosClinicaContextoValor = {
 
 const DadosClinicaContexto = createContext<DadosClinicaContextoValor | null>(null);
 
-export function DadosClinicaProvider({ children }: PropsWithChildren) {
+type DadosClinicaProviderProps = PropsWithChildren<{
+  sessaoAtiva?: boolean;
+}>;
+
+export function DadosClinicaProvider({ children, sessaoAtiva = true }: DadosClinicaProviderProps) {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [atendimentos, setAtendimentos] = useState<AtendimentoComRelacionamentos[]>([]);
@@ -75,6 +79,15 @@ export function DadosClinicaProvider({ children }: PropsWithChildren) {
   const [erro, setErro] = useState<string | null>(null);
 
   const recarregarDados = useCallback(async () => {
+    if (!sessaoAtiva) {
+      setPacientes([]);
+      setProfissionais([]);
+      setAtendimentos([]);
+      setCarregando(false);
+      setErro(null);
+      return;
+    }
+
     setCarregando(true);
     setErro(null);
 
@@ -90,7 +103,7 @@ export function DadosClinicaProvider({ children }: PropsWithChildren) {
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [sessaoAtiva]);
 
   useEffect(() => {
     recarregarDados();
