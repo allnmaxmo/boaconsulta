@@ -121,9 +121,10 @@ export function TelaCadastro() {
       password: senha,
       options: {
         data: {
-          nome: nomeNormalizado,
+          nome_completo: nomeNormalizado,
           cpf: cpfNormalizado,
           telefone: telefoneNormalizado,
+          cargo: 'profissional',
         },
       },
     });
@@ -134,13 +135,30 @@ export function TelaCadastro() {
     }
 
     if (data.user) {
-      const { error: erroPerfil } = await supabase.from('profissionais').insert({
-        id: data.user.id,
-        nome: nomeNormalizado,
-        especialidade: 'Profissional de saúde',
-        telefone: telefoneNormalizado,
-        ativo: true,
-      });
+      const { data: profissionalExistente, error: erroBuscaPerfil } = await supabase
+        .from('profissionais')
+        .select('id')
+        .eq('usuario_id', data.user.id)
+        .maybeSingle();
+
+      if (erroBuscaPerfil) {
+        Alert.alert(
+          'Conta criada',
+          `Sua conta foi criada, mas não foi possível verificar o perfil profissional: ${erroBuscaPerfil.message}`,
+          [{ text: 'Entrar', onPress: () => router.replace(rotaApp('/login')) }],
+        );
+        return;
+      }
+
+      const { error: erroPerfil } = profissionalExistente
+        ? { error: null }
+        : await supabase.from('profissionais').insert({
+            usuario_id: data.user.id,
+            nome: nomeNormalizado,
+            especialidade: 'Profissional de saude',
+            telefone: telefoneNormalizado,
+            ativo: true,
+          });
 
       if (erroPerfil) {
         Alert.alert(

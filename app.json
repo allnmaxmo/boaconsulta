@@ -28,6 +28,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "O BoaConsulta acessa suas fotos para permitir atualizar sua imagem de perfil."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

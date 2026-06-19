@@ -1,3 +1,4 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -13,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/src/servicos/supabase';
+import { enviarImagemPerfil, obterPerfilUsuarioAtual } from '@/src/servicos/perfilSupabase';
 import { rotaApp } from '@/src/utilitarios/rotas';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -41,6 +43,9 @@ const RADIUS = {
   '3xl': 32,
   full: 9999,
 };
+
+const fotoPerfilPadrao =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuChohkqajxpqLDLOZaLrlctOkS46yD5q6uYzK5K2pT3P-CixlSUX78cKuAG4uY3ylvq4CcHKa9kn0PMp7Zx4mYFuVPI4i9p7wHGk6eSzmiogkx_qUOU_LmiU3Sow8h4vCToZTiBpKuXAGCrdtNPlTocyeSNIQjHzGfG3LCZvdSsSlSImPix_cE9tM21HM5OEn855kW6Go1jSv2jmLnBi_XxZhigjy4Vf7x5Zl0zWJ-FGSw_JfzImPRkSTmAo8KXglaX-wkZGfD0vnES';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -112,27 +117,35 @@ export function PerfilUsuario({ redirecionarAposLogout = '/login' }: PerfilUsuar
   const [profissional, setProfissional] = useState({
     nome: 'Dr. Ricardo Silva',
     email: 'ricardo.silva@boaconsulta.com',
-    fotoUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuChohkqajxpqLDLOZaLrlctOkS46yD5q6uYzK5K2pT3P-CixlSUX78cKuAG4uY3ylvq4CcHKa9kn0PMp7Zx4mYFuVPI4i9p7wHGk6eSzmiogkx_qUOU_LmiU3Sow8h4vCToZTiBpKuXAGCrdtNPlTocyeSNIQjHzGfG3LCZvdSsSlSImPix_cE9tM21HM5OEn855kW6Go1jSv2jmLnBi_XxZhigjy4Vf7x5Zl0zWJ-FGSw_JfzImPRkSTmAo8KXglaX-wkZGfD0vnES',
+    fotoUrl: fotoPerfilPadrao,
     consultas: 124,
     avaliacao: '4.9',
   });
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        return;
-      }
+    let telaAtiva = true;
 
-      setProfissional((atual) => ({
-        ...atual,
-        nome:
-          typeof data.user.user_metadata.nome === 'string'
-            ? data.user.user_metadata.nome
-            : atual.nome,
-        email: data.user.email ?? atual.email,
-      }));
-    });
+    obterPerfilUsuarioAtual()
+      .then((perfil) => {
+        if (!telaAtiva) {
+          return;
+        }
+
+        setProfissional((atual) => ({
+          ...atual,
+          nome: perfil.nomeCompleto,
+          email: perfil.email,
+          fotoUrl: perfil.avatarUrl ?? atual.fotoUrl,
+        }));
+      })
+      .catch((error) => {
+        console.error(error instanceof Error ? error.message : 'Erro ao carregar perfil.');
+      });
+
+    return () => {
+      telaAtiva = false;
+    };
   }, []);
 
   const itensMenu: ItemMenu[] = [
@@ -150,6 +163,42 @@ export function PerfilUsuario({ redirecionarAposLogout = '/login' }: PerfilUsuar
     }
 
     router.replace(rotaApp(redirecionarAposLogout));
+  }
+
+  async function aoSelecionarImagemPerfil() {
+    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissao.granted) {
+      Alert.alert(
+        'Permissão necessária',
+        'Autorize o acesso às fotos para atualizar sua imagem de perfil.',
+      );
+      return;
+    }
+
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+
+    if (resultado.canceled) {
+      return;
+    }
+
+    try {
+      setEnviandoImagem(true);
+      const avatarUrl = await enviarImagemPerfil(resultado.assets[0].uri);
+      setProfissional((atual) => ({ ...atual, fotoUrl: avatarUrl }));
+    } catch (error) {
+      Alert.alert(
+        'Erro ao atualizar foto',
+        error instanceof Error ? error.message : 'Não foi possível atualizar a imagem de perfil.',
+      );
+    } finally {
+      setEnviandoImagem(false);
+    }
   }
 
   return (
@@ -176,7 +225,14 @@ export function PerfilUsuario({ redirecionarAposLogout = '/login' }: PerfilUsuar
         <View style={styles.perfilCabecalho}>
           <View style={styles.avatarWrapper}>
             <Image source={{ uri: profissional.fotoUrl }} style={styles.avatar} />
-            <Pressable style={styles.botaoEditarFoto}>
+            <Pressable
+              disabled={enviandoImagem}
+              onPress={aoSelecionarImagemPerfil}
+              style={({ pressed }) => [
+                styles.botaoEditarFoto,
+                (pressed || enviandoImagem) && { opacity: 0.72 },
+              ]}
+            >
               <Text style={styles.botaoEditarFotoTexto}>✎</Text>
             </Pressable>
           </View>

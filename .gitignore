@@ -42,3 +42,7 @@ app-example
 # generated native folders
 /ios
 /android
+
+# pasta de documentação criada pelo codex para atualizações feitas por mim Israel
+
+/doc

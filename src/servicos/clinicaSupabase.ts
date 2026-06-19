@@ -51,8 +51,16 @@ function primeiro<T>(valor: T | T[] | null | undefined) {
   return Array.isArray(valor) ? valor[0] : valor;
 }
 
-function falhar(operacao: string, erro: { message: string }) {
-  throw new Error(`${operacao}: ${erro.message}`);
+function traduzirErroSupabase(erro: { message: string; code?: string }) {
+  if (erro.code === '23503') {
+    return 'Este registro possui vínculos no banco e não pode ser excluído fisicamente.';
+  }
+
+  return erro.message;
+}
+
+function falhar(operacao: string, erro: { message: string; code?: string }) {
+  throw new Error(`${operacao}: ${traduzirErroSupabase(erro)}`);
 }
 
 function exigirLinha<T>(data: T | null, operacao: string): T {
@@ -220,7 +228,10 @@ export async function editarProfissionalSupabase(
 }
 
 export async function excluirProfissionalSupabase(profissionalId: string) {
-  const { error } = await supabase.from('profissionais').delete().eq('id', profissionalId);
+  const { error } = await supabase
+    .from('profissionais')
+    .update({ ativo: false })
+    .eq('id', profissionalId);
 
   if (error) {
     falhar('Erro ao excluir profissional', error);
