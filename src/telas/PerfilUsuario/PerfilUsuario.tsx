@@ -14,14 +14,17 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/src/servicos/supabase';
-import { enviarImagemPerfil, obterPerfilUsuarioAtual } from '@/src/servicos/perfilSupabase';
+import {
+  enviarImagemPerfil,
+  obterPerfilUsuarioAtual,
+  obterTotalConsultasRealizadasDoProfissional,
+} from '@/src/servicos/perfilSupabase';
 import { rotaApp } from '@/src/utilitarios/rotas';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const COLORS = {
   primary: '#004ac6',
   primaryContainer: '#2563eb',
-  secondary: '#712ae2',
   onPrimary: '#ffffff',
   onSurface: '#131b2e',
   onSurfaceVariant: '#434655',
@@ -118,16 +121,18 @@ export function PerfilUsuario({ redirecionarAposLogout = '/login' }: PerfilUsuar
     nome: 'Dr. Ricardo Silva',
     email: 'ricardo.silva@boaconsulta.com',
     fotoUrl: fotoPerfilPadrao,
-    consultas: 124,
-    avaliacao: '4.9',
+    cargo: undefined as string | undefined,
+    consultas: null as number | null,
   });
   const [enviandoImagem, setEnviandoImagem] = useState(false);
 
   useEffect(() => {
     let telaAtiva = true;
 
-    obterPerfilUsuarioAtual()
-      .then((perfil) => {
+    async function carregarPerfil() {
+      try {
+        const perfil = await obterPerfilUsuarioAtual();
+
         if (!telaAtiva) {
           return;
         }
@@ -137,11 +142,30 @@ export function PerfilUsuario({ redirecionarAposLogout = '/login' }: PerfilUsuar
           nome: perfil.nomeCompleto,
           email: perfil.email,
           fotoUrl: perfil.avatarUrl ?? atual.fotoUrl,
+          cargo: perfil.cargo,
         }));
-      })
-      .catch((error) => {
+
+        if (perfil.cargo !== 'profissional') {
+          return;
+        }
+
+        try {
+          const consultas = await obterTotalConsultasRealizadasDoProfissional(perfil.id);
+
+          if (telaAtiva) {
+            setProfissional((atual) => ({ ...atual, consultas }));
+          }
+        } catch (error) {
+          console.error(
+            error instanceof Error ? error.message : 'Erro ao carregar total de consultas.',
+          );
+        }
+      } catch (error) {
         console.error(error instanceof Error ? error.message : 'Erro ao carregar perfil.');
-      });
+      }
+    }
+
+    carregarPerfil();
 
     return () => {
       telaAtiva = false;
@@ -247,20 +271,16 @@ export function PerfilUsuario({ redirecionarAposLogout = '/login' }: PerfilUsuar
         </View>
 
         {/* ── Estatísticas rápidas ── */}
-        <View style={styles.linhaEstatisticas}>
-          <GlassCard style={styles.cartaoEstatistica}>
-            <Text style={[styles.estatisticaValor, { color: COLORS.primary }]}>
-              {profissional.consultas}
-            </Text>
-            <Text style={styles.estatisticaRotulo}>CONSULTAS</Text>
-          </GlassCard>
-          <GlassCard style={styles.cartaoEstatistica}>
-            <Text style={[styles.estatisticaValor, { color: COLORS.secondary }]}>
-              {profissional.avaliacao}
-            </Text>
-            <Text style={styles.estatisticaRotulo}>AVALIAÇÃO</Text>
-          </GlassCard>
-        </View>
+        {profissional.cargo === 'profissional' && (
+          <View style={styles.linhaEstatisticas}>
+            <GlassCard style={styles.cartaoEstatistica}>
+              <Text style={[styles.estatisticaValor, { color: COLORS.primary }]}>
+                {profissional.consultas ?? '—'}
+              </Text>
+              <Text style={styles.estatisticaRotulo}>CONSULTAS</Text>
+            </GlassCard>
+          </View>
+        )}
 
         {/* ── Menu de ações ── */}
         <GlassCard style={styles.menuCartao}>

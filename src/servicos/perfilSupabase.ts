@@ -77,6 +77,34 @@ export async function obterPerfilUsuarioAtual() {
   return mapearPerfilUsuario(data as PerfilUsuarioRow);
 }
 
+export async function obterTotalConsultasRealizadasDoProfissional(usuarioId: string) {
+  const { data: profissional, error: erroProfissional } = await supabase
+    .from('profissionais')
+    .select('id')
+    .eq('usuario_id', usuarioId)
+    .maybeSingle();
+
+  if (erroProfissional) {
+    throw new Error(`Erro ao localizar perfil profissional: ${erroProfissional.message}`);
+  }
+
+  if (!profissional) {
+    throw new Error('Nenhum perfil profissional vinculado ao usuário foi encontrado.');
+  }
+
+  const { count, error: erroContagem } = await supabase
+    .from('atendimentos')
+    .select('id', { count: 'exact', head: true })
+    .eq('profissional_id', profissional.id)
+    .eq('status', 'realizado');
+
+  if (erroContagem) {
+    throw new Error(`Erro ao contar consultas realizadas: ${erroContagem.message}`);
+  }
+
+  return count ?? 0;
+}
+
 export async function enviarImagemPerfil(uri: string) {
   const usuario = await obterUsuarioAutenticado();
   const extensao = obterExtensaoImagem(uri);
