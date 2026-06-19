@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ModalConfirmacao } from '@/src/componentes/interface/ModalConfirmacao';
 import { Seletor } from '@/src/componentes/interface/Seletor';
 import { useDadosClinica } from '@/src/contextos/DadosClinicaContexto';
+import { opcoesLembreteAtendimento } from '@/src/servicos/notificacoes';
 import { StatusAtendimento } from '@/src/tipos/dominio';
 import { dataISOHoje, montarDataHora, obterData, obterHorario } from '@/src/utilitarios/data';
 import {
@@ -188,6 +189,7 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
       data: atendimento ? obterData(atendimento.dataHora) : dataISOHoje(),
       horario: atendimento ? obterHorario(atendimento.dataHora) : '',
       tipoAtendimento: atendimento?.tipoAtendimento ?? '',
+      lembreteMinutos: String(atendimento?.lembreteMinutos ?? 30),
       status: atendimento?.status ?? 'agendado',
     },
   });
@@ -204,6 +206,7 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
           dataHora,
           tipoAtendimento: dados.tipoAtendimento,
           status: dados.status,
+          lembreteMinutos: Number(dados.lembreteMinutos),
         });
       } else {
         await criarAtendimento({
@@ -211,6 +214,7 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
           profissionalId: dados.profissionalId,
           dataHora,
           tipoAtendimento: dados.tipoAtendimento,
+          lembreteMinutos: Number(dados.lembreteMinutos),
         });
       }
       setSucesso(true);
@@ -355,6 +359,23 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
                 value={field.value}
                 onChangeText={field.onChange}
                 erro={errors.tipoAtendimento?.message}
+              />
+            )}
+          />
+
+          <View style={styles.separador} />
+
+          <Controller
+            control={control}
+            name="lembreteMinutos"
+            render={({ field }) => (
+              <Seletor
+                rotulo="Lembrete"
+                valor={field.value}
+                onChange={field.onChange}
+                erro={errors.lembreteMinutos?.message}
+                opcoes={opcoesLembreteAtendimento}
+                horizontal
               />
             )}
           />

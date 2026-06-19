@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 
 import { DadosClinicaProvider } from '@/src/contextos/DadosClinicaContexto';
 import { cores } from '@/src/constantes/tema';
+import { configurarNotificacoes } from '@/src/servicos/notificacoes';
 import { supabase } from '@/src/servicos/supabase';
 
 export const unstable_settings = {
@@ -39,6 +40,10 @@ export default function RootLayout() {
   const [carregandoSessao, setCarregandoSessao] = useState(true);
 
   useEffect(() => {
+    configurarNotificacoes().catch((error) => {
+      console.error(error instanceof Error ? error.message : 'Erro ao configurar notificações.');
+    });
+
     supabase.auth.getSession().then(({ data }) => {
       setSessao(data.session);
       setCarregandoSessao(false);

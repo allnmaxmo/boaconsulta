@@ -1,5 +1,9 @@
 import { supabase } from '@/src/servicos/supabase';
 import {
+  agendarNotificacaoAtendimento,
+  cancelarNotificacaoAtendimento,
+} from '@/src/servicos/notificacoes';
+import {
   Atendimento,
   AtendimentoComRelacionamentos,
   DadosClinica,
@@ -32,8 +36,10 @@ type AtendimentoRow = {
   data_atendimento: string;
   hora_atendimento: string;
   duracao_minutos?: number | null;
+  lembrete_minutos?: number | null;
   tipo_atendimento: string;
   status: StatusAtendimento;
+  notificacao_id?: string | null;
   observacoes?: string | null;
   pacientes?: PacienteRow | PacienteRow[] | null;
   profissionais?: ProfissionalRow | ProfissionalRow[] | null;
@@ -45,7 +51,7 @@ type DadosNovoAtendimento = Omit<Atendimento, 'id' | 'status'>;
 type DadosEdicaoAtendimento = Omit<Atendimento, 'id'>;
 
 const selectAtendimento =
-  'id,paciente_id,profissional_id,data_atendimento,hora_atendimento,duracao_minutos,tipo_atendimento,status,observacoes,pacientes:paciente_id(id,nome,telefone,email,observacoes),profissionais:profissional_id(id,nome,especialidade,telefone,ativo)';
+  'id,paciente_id,profissional_id,data_atendimento,hora_atendimento,duracao_minutos,lembrete_minutos,tipo_atendimento,status,notificacao_id,observacoes,pacientes:paciente_id(id,nome,telefone,email,observacoes),profissionais:profissional_id(id,nome,especialidade,telefone,ativo)';
 
 function primeiro<T>(valor: T | T[] | null | undefined) {
   return Array.isArray(valor) ? valor[0] : valor;
@@ -103,6 +109,8 @@ function mapearAtendimento(row: AtendimentoRow): AtendimentoComRelacionamentos {
     tipoAtendimento: row.tipo_atendimento,
     status: row.status,
     duracaoMinutos: row.duracao_minutos ?? undefined,
+    lembreteMinutos: row.lembrete_minutos ?? undefined,
+    notificacaoId: row.notificacao_id ?? undefined,
     observacoes: row.observacoes ?? undefined,
     paciente: paciente ? mapearPaciente(paciente) : undefined,
     profissional: profissional ? mapearProfissional(profissional) : undefined,
@@ -118,8 +126,33 @@ function payloadAtendimento(dados: DadosNovoAtendimento | DadosEdicaoAtendimento
     tipo_atendimento: dados.tipoAtendimento,
     status: 'status' in dados ? dados.status : 'agendado',
     duracao_minutos: dados.duracaoMinutos ?? 30,
+    lembrete_minutos: dados.lembreteMinutos ?? 30,
     observacoes: dados.observacoes ?? null,
   };
+}
+
+async function salvarNotificacaoAtendimento(atendimento: AtendimentoComRelacionamentos) {
+  const notificacaoId = await agendarNotificacaoAtendimento(
+    atendimento,
+    atendimento.lembreteMinutos ?? 30,
+  );
+
+  if (!notificacaoId) {
+    return atendimento;
+  }
+
+  const { data, error } = await supabase
+    .from('atendimentos')
+    .update({ notificacao_id: notificacaoId })
+    .eq('id', atendimento.id)
+    .select(selectAtendimento)
+    .single();
+
+  if (error) {
+    falhar('Erro ao salvar notificação do atendimento', error);
+  }
+
+  return mapearAtendimento(data as AtendimentoRow);
 }
 
 export async function listarDadosClinicaSupabase(): Promise<DadosClinica> {
@@ -249,16 +282,28 @@ export async function criarAtendimentoSupabase(dados: DadosNovoAtendimento) {
     falhar('Erro ao criar atendimento', error);
   }
 
-  return mapearAtendimento(data as AtendimentoRow);
+  return salvarNotificacaoAtendimento(mapearAtendimento(data as AtendimentoRow));
 }
 
 export async function editarAtendimentoSupabase(
   atendimentoId: string,
   dados: DadosEdicaoAtendimento,
 ) {
+  const { data: atendimentoAtual, error: erroAtendimentoAtual } = await supabase
+    .from('atendimentos')
+    .select('notificacao_id')
+    .eq('id', atendimentoId)
+    .single();
+
+  if (erroAtendimentoAtual) {
+    falhar('Erro ao buscar notificação anterior', erroAtendimentoAtual);
+  }
+
+  await cancelarNotificacaoAtendimento(atendimentoAtual?.notificacao_id);
+
   const { data, error } = await supabase
     .from('atendimentos')
-    .update(payloadAtendimento(dados))
+    .update({ ...payloadAtendimento(dados), notificacao_id: null })
     .eq('id', atendimentoId)
     .select(selectAtendimento)
     .single();
@@ -267,13 +312,25 @@ export async function editarAtendimentoSupabase(
     falhar('Erro ao editar atendimento', error);
   }
 
-  return mapearAtendimento(data as AtendimentoRow);
+  return salvarNotificacaoAtendimento(mapearAtendimento(data as AtendimentoRow));
 }
 
 export async function cancelarAtendimentoSupabase(atendimentoId: string) {
+  const { data: atendimentoAtual, error: erroAtendimentoAtual } = await supabase
+    .from('atendimentos')
+    .select('notificacao_id')
+    .eq('id', atendimentoId)
+    .single();
+
+  if (erroAtendimentoAtual) {
+    falhar('Erro ao buscar notificação anterior', erroAtendimentoAtual);
+  }
+
+  await cancelarNotificacaoAtendimento(atendimentoAtual?.notificacao_id);
+
   const { data, error } = await supabase
     .from('atendimentos')
-    .update({ status: 'cancelado' })
+    .update({ status: 'cancelado', notificacao_id: null })
     .eq('id', atendimentoId)
     .select(selectAtendimento)
     .single();

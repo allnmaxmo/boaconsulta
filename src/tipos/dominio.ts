@@ -24,6 +24,8 @@ export type Atendimento = {
   tipoAtendimento: string;
   status: StatusAtendimento;
   duracaoMinutos?: number;
+  lembreteMinutos?: number;
+  notificacaoId?: string;
   observacoes?: string;
 };
 

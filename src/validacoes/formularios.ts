@@ -18,6 +18,7 @@ export const atendimentoSchema = z.object({
   data: campoObrigatorio('Data'),
   horario: campoObrigatorio('Horário'),
   tipoAtendimento: campoObrigatorio('Tipo de atendimento'),
+  lembreteMinutos: campoObrigatorio('Lembrete'),
 });
 
 export const atendimentoEdicaoSchema = atendimentoSchema.extend({
