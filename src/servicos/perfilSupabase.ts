@@ -9,17 +9,36 @@ type PerfilUsuarioRow = {
   nome_completo: string;
   email: string;
   telefone?: string | null;
-  cargo?: string | null;
+  cargo: CargoUsuario;
   avatar_url?: string | null;
+  ativo: boolean;
 };
+
+type ProfissionalPerfilRow = {
+  id: string;
+  especialidade: string;
+};
+
+export type CargoUsuario = 'administrador' | 'atendente' | 'profissional' | 'paciente';
 
 export type PerfilUsuarioAtual = {
   id: string;
   nomeCompleto: string;
   email: string;
   telefone?: string;
-  cargo?: string;
+  cargo: CargoUsuario;
   avatarUrl?: string;
+  ativo: boolean;
+};
+
+export type ResumoProfissional = {
+  especialidade: string;
+  totalConsultasRealizadas: number;
+};
+
+export type DadosEdicaoPerfil = {
+  nomeCompleto: string;
+  telefone: string;
 };
 
 function mapearPerfilUsuario(row: PerfilUsuarioRow): PerfilUsuarioAtual {
@@ -28,8 +47,9 @@ function mapearPerfilUsuario(row: PerfilUsuarioRow): PerfilUsuarioAtual {
     nomeCompleto: row.nome_completo,
     email: row.email,
     telefone: row.telefone ?? undefined,
-    cargo: row.cargo ?? undefined,
+    cargo: row.cargo,
     avatarUrl: row.avatar_url ?? undefined,
+    ativo: row.ativo,
   };
 }
 
@@ -66,7 +86,7 @@ export async function obterPerfilUsuarioAtual() {
   const usuario = await obterUsuarioAutenticado();
   const { data, error } = await supabase
     .from('usuarios')
-    .select('id,nome_completo,email,telefone,cargo,avatar_url')
+    .select('id,nome_completo,email,telefone,cargo,avatar_url,ativo')
     .eq('id', usuario.id)
     .single();
 
@@ -77,10 +97,12 @@ export async function obterPerfilUsuarioAtual() {
   return mapearPerfilUsuario(data as PerfilUsuarioRow);
 }
 
-export async function obterTotalConsultasRealizadasDoProfissional(usuarioId: string) {
+export async function obterResumoProfissionalDoUsuario(
+  usuarioId: string,
+): Promise<ResumoProfissional | undefined> {
   const { data: profissional, error: erroProfissional } = await supabase
     .from('profissionais')
-    .select('id')
+    .select('id,especialidade')
     .eq('usuario_id', usuarioId)
     .maybeSingle();
 
@@ -89,7 +111,7 @@ export async function obterTotalConsultasRealizadasDoProfissional(usuarioId: str
   }
 
   if (!profissional) {
-    throw new Error('Nenhum perfil profissional vinculado ao usuário foi encontrado.');
+    return undefined;
   }
 
   const { count, error: erroContagem } = await supabase
@@ -102,7 +124,29 @@ export async function obterTotalConsultasRealizadasDoProfissional(usuarioId: str
     throw new Error(`Erro ao contar consultas realizadas: ${erroContagem.message}`);
   }
 
-  return count ?? 0;
+  return {
+    especialidade: (profissional as ProfissionalPerfilRow).especialidade,
+    totalConsultasRealizadas: count ?? 0,
+  };
+}
+
+export async function atualizarPerfilUsuarioAtual(dados: DadosEdicaoPerfil) {
+  const usuario = await obterUsuarioAutenticado();
+  const { data, error } = await supabase
+    .from('usuarios')
+    .update({
+      nome_completo: dados.nomeCompleto.trim(),
+      telefone: dados.telefone.trim(),
+    })
+    .eq('id', usuario.id)
+    .select('id,nome_completo,email,telefone,cargo,avatar_url,ativo')
+    .single();
+
+  if (error) {
+    throw new Error(`Erro ao atualizar perfil do usuário: ${error.message}`);
+  }
+
+  return mapearPerfilUsuario(data as PerfilUsuarioRow);
 }
 
 export async function enviarImagemPerfil(uri: string) {

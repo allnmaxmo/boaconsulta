@@ -79,6 +79,7 @@ export default function RootLayout() {
               <Stack.Screen name="pacientes/[id]/index" />
               <Stack.Screen name="profissionais/novo" options={{ presentation: 'modal' }} />
               <Stack.Screen name="profissionais/[id]" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="perfil/editar" options={{ presentation: 'modal' }} />
             </Stack.Protected>
           </Stack>
         )}

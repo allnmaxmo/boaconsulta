@@ -10,10 +10,10 @@ Ainda existem pontos de produto que aparecem visualmente na interface, mas não 
 
 ### Perfil do usuário
 
-- `Editar Dados`: aparece na tela de perfil, mas ainda não abre uma tela de edição do usuário logado.
-- `Configurações`: aparece na tela de perfil, mas ainda não possui rota/tela.
-- `Notificações`: aparece na tela de perfil, mas ainda não possui rota/tela nem integração real com notificações.
-- Estatísticas `consultas` e `avaliação`: ainda são valores fixos na tela de perfil e devem vir do banco ou ser removidas até existir cálculo real.
+- `Editar dados`: implementado para nome e telefone do usuário logado.
+- Sincronização: a atualização 004 replica nome, telefone e avatar nos cadastros profissional/paciente vinculados.
+- `Configurações` e preferências globais de `Notificações`: removidas do perfil enquanto não existe fluxo próprio.
+- Estatística de consultas: mostra atendimentos realizados somente no perfil profissional; avaliação foi removida.
 
 ### Cadastro e perfil profissional
 
@@ -56,15 +56,15 @@ Ainda existem pontos de produto que aparecem visualmente na interface, mas não 
 - Foto de perfil: implementação de código criada, depende de rodar `doc/atualizacao_002_storage_imagem_perfil.sql` no Supabase.
 - Notificações: pendente.
 - Configurações do usuário: pendente.
-- Edição do perfil do usuário logado: pendente.
+- Edição do perfil do usuário logado: implementada para nome e telefone; depende da atualização 004 para sincronizar vínculos.
 
 ## Ordem recomendada de execução
 
 1. Rodar `doc/atualizacao_002_storage_imagem_perfil.sql` no Supabase.
 2. Testar login, cadastro e troca de foto em um dispositivo/emulador.
-3. Criar tela de edição do usuário logado.
-4. Criar tela de configurações.
-5. Criar tela/preferências de notificações.
+3. Rodar `doc/atualizacao_004_sincronizacao_perfil_usuario.sql` no Supabase.
+4. Criar tela de configurações, caso existam preferências reais a expor.
+5. Criar tela/preferências globais de notificações, caso sejam necessárias além do lembrete por atendimento.
 6. Expandir formulário de paciente para `email` e `observacoes`.
 7. Expandir formulário de profissional para `telefone`.
 8. Implementar notificações locais usando `notificacao_id`.

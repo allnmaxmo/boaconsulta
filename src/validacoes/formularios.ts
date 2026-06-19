@@ -12,6 +12,11 @@ export const profissionalSchema = z.object({
   especialidade: campoObrigatorio('Especialidade'),
 });
 
+export const perfilUsuarioSchema = z.object({
+  nomeCompleto: campoObrigatorio('Nome completo'),
+  telefone: campoObrigatorio('Telefone'),
+});
+
 export const atendimentoSchema = z.object({
   pacienteId: campoObrigatorio('Paciente'),
   profissionalId: campoObrigatorio('Profissional'),
@@ -29,6 +34,7 @@ export const atendimentoEdicaoSchema = atendimentoSchema.extend({
 
 export type PacienteFormulario = z.infer<typeof pacienteSchema>;
 export type ProfissionalFormulario = z.infer<typeof profissionalSchema>;
+export type PerfilUsuarioFormulario = z.infer<typeof perfilUsuarioSchema>;
 export type AtendimentoFormulario = z.infer<typeof atendimentoSchema>;
 export type AtendimentoEdicaoFormulario = z.infer<typeof atendimentoEdicaoSchema>;
 
