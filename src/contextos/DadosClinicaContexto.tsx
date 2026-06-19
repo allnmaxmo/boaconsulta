@@ -30,6 +30,7 @@ import {
   excluirProfissionalSupabase,
   listarDadosClinicaSupabase,
 } from '@/src/servicos/clinicaSupabase';
+import { PerfilUsuarioAtual, obterPerfilUsuarioAtual } from '@/src/servicos/perfilSupabase';
 import {
   Atendimento,
   AtendimentoComRelacionamentos,
@@ -45,7 +46,8 @@ type DadosEdicaoAtendimento = Omit<Atendimento, 'id'>;
 type DadosClinicaContextoValor = {
   pacientes: Paciente[];
   profissionais: Profissional[];
-  atendimentos: Atendimento[];
+  atendimentos: AtendimentoComRelacionamentos[];
+  perfilUsuario: PerfilUsuarioAtual | null;
   carregando: boolean;
   erro: string | null;
   recarregarDados: () => Promise<void>;
@@ -75,6 +77,7 @@ export function DadosClinicaProvider({ children, sessaoAtiva = true }: DadosClin
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [atendimentos, setAtendimentos] = useState<AtendimentoComRelacionamentos[]>([]);
+  const [perfilUsuario, setPerfilUsuario] = useState<PerfilUsuarioAtual | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -83,6 +86,7 @@ export function DadosClinicaProvider({ children, sessaoAtiva = true }: DadosClin
       setPacientes([]);
       setProfissionais([]);
       setAtendimentos([]);
+      setPerfilUsuario(null);
       setCarregando(false);
       setErro(null);
       return;
@@ -92,6 +96,9 @@ export function DadosClinicaProvider({ children, sessaoAtiva = true }: DadosClin
     setErro(null);
 
     try {
+      const perfil = await obterPerfilUsuarioAtual();
+      setPerfilUsuario(perfil);
+
       const dados = await listarDadosClinicaSupabase();
       setPacientes(dados.pacientes);
       setProfissionais(dados.profissionais);
@@ -225,6 +232,7 @@ export function DadosClinicaProvider({ children, sessaoAtiva = true }: DadosClin
       pacientes: listarPacientesMock(pacientes),
       profissionais: listarProfissionaisMock(profissionais),
       atendimentos,
+      perfilUsuario,
       carregando,
       erro,
       recarregarDados,
@@ -256,6 +264,7 @@ export function DadosClinicaProvider({ children, sessaoAtiva = true }: DadosClin
       excluirPaciente,
       excluirProfissional,
       carregando,
+      perfilUsuario,
       listarAtendimentosDoDia,
       listarHistoricoDoPaciente,
       obterAtendimento,

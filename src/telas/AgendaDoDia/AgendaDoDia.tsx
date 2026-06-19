@@ -89,14 +89,33 @@ function FiltroChip({
 export function AgendaDoDia() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profissionais, listarAtendimentosDoDia, carregando, erro } = useDadosClinica();
+  const {
+    atendimentos: todosAtendimentos,
+    profissionais,
+    listarAtendimentosDoDia,
+    carregando,
+    erro,
+    perfilUsuario,
+  } = useDadosClinica();
   const [profissionalFiltro, setProfissionalFiltro] = useState('todos');
   const dataHoje = dataISOHoje();
-
-  const atendimentos = listarAtendimentosDoDia(
-    dataHoje,
-    profissionalFiltro === 'todos' ? undefined : profissionalFiltro,
+  const cargo = perfilUsuario?.cargo;
+  const podeGerenciarClinica = cargo === 'administrador' || cargo === 'atendente';
+  const profissionalLogado = profissionais.find(
+    (profissional) => profissional.usuarioId === perfilUsuario?.id,
   );
+  const atendimentosPaciente = todosAtendimentos
+    .filter((atendimento) => atendimento.paciente?.usuarioId === perfilUsuario?.id)
+    .sort((a, b) => a.dataHora.localeCompare(b.dataHora));
+  const atendimentosProfissional = todosAtendimentos
+    .filter((atendimento) => atendimento.profissionalId === profissionalLogado?.id)
+    .sort((a, b) => a.dataHora.localeCompare(b.dataHora));
+
+  const atendimentos = podeGerenciarClinica
+    ? listarAtendimentosDoDia(dataHoje, profissionalFiltro === 'todos' ? undefined : profissionalFiltro)
+    : cargo === 'paciente'
+      ? atendimentosPaciente
+      : atendimentosProfissional;
 
   const opcoesProfissionais = useMemo<{ rotulo: string; valor: string; detalhe?: string }[]>(
     () => [
@@ -118,15 +137,27 @@ export function AgendaDoDia() {
       <View style={styles.headerWrap}>
         <GlassCard style={styles.headerCard}>
           <View>
-            <Text style={styles.headerTitulo}>BoaConsulta</Text>
-            <Text style={styles.headerSubtitulo}>{formatarDataLonga(new Date())}</Text>
+            <Text style={styles.headerTitulo}>
+              {cargo === 'paciente'
+                ? 'Minhas consultas'
+                : cargo === 'profissional'
+                  ? 'Minha agenda'
+                  : 'BoaConsulta'}
+            </Text>
+            <Text style={styles.headerSubtitulo}>
+              {podeGerenciarClinica
+                ? formatarDataLonga(new Date())
+                : perfilUsuario?.nomeCompleto ?? formatarDataLonga(new Date())}
+            </Text>
           </View>
-          <Pressable
-            onPress={() => router.push(rotaApp('/agendamento/novo'))}
-            style={({ pressed }) => [styles.headerBotao, pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] }]}
-          >
-            <Text style={styles.headerBotaoTexto}>+ Novo</Text>
-          </Pressable>
+          {podeGerenciarClinica ? (
+            <Pressable
+              onPress={() => router.push(rotaApp('/agendamento/novo'))}
+              style={({ pressed }) => [styles.headerBotao, pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] }]}
+            >
+              <Text style={styles.headerBotaoTexto}>+ Novo</Text>
+            </Pressable>
+          ) : null}
         </GlassCard>
       </View>
 
@@ -136,24 +167,33 @@ export function AgendaDoDia() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Filtros ── */}
-        <View style={styles.secao}>
-          <Text style={styles.secaoLabel}>FILTRAR POR PROFISSIONAL</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtroScroll}
-          >
-            {opcoesProfissionais.map((opcao) => (
-              <FiltroChip
-                key={opcao.valor}
-                rotulo={opcao.rotulo}
-                detalhe={opcao.detalhe}
-                ativo={profissionalFiltro === opcao.valor}
-                onPress={() => setProfissionalFiltro(opcao.valor)}
-              />
-            ))}
-          </ScrollView>
-        </View>
+        {podeGerenciarClinica ? (
+          <View style={styles.secao}>
+            <Text style={styles.secaoLabel}>FILTRAR POR PROFISSIONAL</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtroScroll}
+            >
+              {opcoesProfissionais.map((opcao) => (
+                <FiltroChip
+                  key={opcao.valor}
+                  rotulo={opcao.rotulo}
+                  detalhe={opcao.detalhe}
+                  ativo={profissionalFiltro === opcao.valor}
+                  onPress={() => setProfissionalFiltro(opcao.valor)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : (
+          <GlassCard style={styles.resumoCard}>
+            <Text style={styles.resumoValor}>{atendimentos.length}</Text>
+            <Text style={styles.resumoRotulo}>
+              {cargo === 'paciente' ? 'ATENDIMENTOS VINCULADOS A VOCÊ' : 'ATENDIMENTOS NA SUA AGENDA'}
+            </Text>
+          </GlassCard>
+        )}
 
         {/* ── Lista de atendimentos ── */}
         <View style={styles.secao}>
@@ -168,11 +208,17 @@ export function AgendaDoDia() {
           ) : atendimentos.length === 0 ? (
             <EstadoVazio
               titulo={
-                profissionalFiltro === 'todos'
-                  ? 'Nenhum atendimento para hoje'
-                  : 'Nenhum atendimento neste filtro'
+                podeGerenciarClinica
+                  ? profissionalFiltro === 'todos'
+                    ? 'Nenhum atendimento para hoje'
+                    : 'Nenhum atendimento neste filtro'
+                  : 'Nenhum atendimento encontrado'
               }
-              descricao="Quando novos agendamentos forem criados, eles aparecerão organizados por horário."
+              descricao={
+                podeGerenciarClinica
+                  ? 'Quando novos agendamentos forem criados, eles aparecerão organizados por horário.'
+                  : 'Quando houver atendimentos vinculados ao seu cadastro, eles aparecerão aqui.'
+              }
             />
           ) : (
             <View style={styles.lista}>
@@ -181,13 +227,16 @@ export function AgendaDoDia() {
                   key={atendimento.id}
                   atendimento={atendimento}
                   indice={indice}
-                  onPress={() =>
-                    router.push(
-                      rotaApp({ pathname: '/agendamento/[id]', params: { id: atendimento.id } }),
-                    )
+                  onPress={
+                    podeGerenciarClinica
+                      ? () =>
+                          router.push(
+                            rotaApp({ pathname: '/agendamento/[id]', params: { id: atendimento.id } }),
+                          )
+                      : undefined
                   }
                   onPacientePress={
-                    atendimento.paciente
+                    podeGerenciarClinica && atendimento.paciente
                       ? () =>
                           router.push(
                             rotaApp({
@@ -205,18 +254,20 @@ export function AgendaDoDia() {
       </ScrollView>
 
       {/* ── Botão de ação flutuante ── */}
-      <Pressable
-        onPress={() => router.push(rotaApp('/agendamento/novo'))}
-        style={({ pressed }) => [
-          styles.fab,
-          { bottom: insets.bottom + 88 },
-          pressed && { opacity: 0.8, transform: [{ scale: 0.93 }] },
-        ]}
-        accessibilityLabel="Criar novo agendamento"
-        accessibilityRole="button"
-      >
-        <Text style={styles.fabIcone}>＋</Text>
-      </Pressable>
+      {podeGerenciarClinica ? (
+        <Pressable
+          onPress={() => router.push(rotaApp('/agendamento/novo'))}
+          style={({ pressed }) => [
+            styles.fab,
+            { bottom: insets.bottom + 88 },
+            pressed && { opacity: 0.8, transform: [{ scale: 0.93 }] },
+          ]}
+          accessibilityLabel="Criar novo agendamento"
+          accessibilityRole="button"
+        >
+          <Text style={styles.fabIcone}>＋</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -338,6 +389,24 @@ const styles = StyleSheet.create({
   // ── Lista ──
   lista: {
     gap: 14,
+  },
+  resumoCard: {
+    borderRadius: RADIUS['2xl'],
+    padding: 20,
+    alignItems: 'center',
+    gap: 4,
+  },
+  resumoValor: {
+    color: COLORS.primary,
+    fontSize: 32,
+    fontWeight: '800',
+  },
+  resumoRotulo: {
+    color: COLORS.onSurfaceVariant,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textAlign: 'center',
   },
 
   // ── Glass card base ──

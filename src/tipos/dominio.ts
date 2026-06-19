@@ -2,6 +2,7 @@ export type StatusAtendimento = 'agendado' | 'realizado' | 'cancelado' | 'falta'
 
 export type Paciente = {
   id: string;
+  usuarioId?: string;
   nome: string;
   telefone: string;
   email?: string;
@@ -10,6 +11,7 @@ export type Paciente = {
 
 export type Profissional = {
   id: string;
+  usuarioId?: string;
   nome: string;
   especialidade: string;
   telefone?: string;

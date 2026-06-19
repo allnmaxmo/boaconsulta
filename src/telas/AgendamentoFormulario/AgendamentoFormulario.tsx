@@ -1,10 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   Pressable,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ModalConfirmacao } from '@/src/componentes/interface/ModalConfirmacao';
 import { Seletor } from '@/src/componentes/interface/Seletor';
+import { SeletorPesquisavel } from '@/src/componentes/interface/SeletorPesquisavel';
 import { useDadosClinica } from '@/src/contextos/DadosClinicaContexto';
 import { opcoesLembreteAtendimento } from '@/src/servicos/notificacoes';
 import { StatusAtendimento } from '@/src/tipos/dominio';
@@ -60,6 +64,34 @@ const opcoesStatus: { rotulo: string; valor: StatusAtendimento }[] = [
   { rotulo: 'Falta', valor: 'falta' },
 ];
 
+function formatarDataFormulario(data: string) {
+  if (!data) {
+    return '';
+  }
+
+  const [ano, mes, dia] = data.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+function formatarDataISO(data: Date) {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+function formatarHorarioFormulario(data: Date) {
+  const hora = String(data.getHours()).padStart(2, '0');
+  const minuto = String(data.getMinutes()).padStart(2, '0');
+  return `${hora}:${minuto}`;
+}
+
+function criarDataPicker(data: string, horario: string) {
+  const dataBase = data || dataISOHoje();
+  const horarioBase = horario || '12:00';
+  return new Date(`${dataBase}T${horarioBase}:00`);
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function GlassCard({ children, style }: { children: React.ReactNode; style?: object }) {
@@ -94,6 +126,43 @@ function CampoGlass({
         onChangeText={onChangeText}
         keyboardType={keyboardType ?? 'default'}
       />
+      {erro ? <Text style={styles.campoErro}>{erro}</Text> : null}
+    </View>
+  );
+}
+
+function CampoAcionavel({
+  rotulo,
+  valor,
+  placeholder,
+  erro,
+  onPress,
+  style,
+}: {
+  rotulo: string;
+  valor: string;
+  placeholder: string;
+  erro?: string;
+  onPress: () => void;
+  style?: object;
+}) {
+  return (
+    <View style={[styles.campoWrap, style]}>
+      <Text style={styles.campoRotulo}>{rotulo}</Text>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.campoInput,
+          styles.campoAcionavel,
+          erro && styles.campoInputErro,
+          pressed && { opacity: 0.76 },
+        ]}
+      >
+        <Text style={[styles.campoAcionavelTexto, !valor && styles.campoAcionavelPlaceholder]}>
+          {valor || placeholder}
+        </Text>
+        <MaterialIcons name="expand-more" size={20} color={COLORS.onSurfaceVariant} />
+      </Pressable>
       {erro ? <Text style={styles.campoErro}>{erro}</Text> : null}
     </View>
   );
@@ -176,10 +245,13 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
   const [sucesso, setSucesso] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
   const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
+  const [mostrandoData, setMostrandoData] = useState(false);
+  const [mostrandoHorario, setMostrandoHorario] = useState(false);
 
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<AtendimentoEdicaoFormulario>({
     resolver: zodResolver(atendimentoEdicaoSchema),
@@ -193,6 +265,8 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
       status: atendimento?.status ?? 'agendado',
     },
   });
+  const dataSelecionada = watch('data');
+  const horarioSelecionado = watch('horario');
 
   async function salvar(dados: AtendimentoEdicaoFormulario) {
     setEnviando(true);
@@ -280,11 +354,12 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
             control={control}
             name="pacienteId"
             render={({ field }) => (
-              <Seletor
+              <SeletorPesquisavel
                 rotulo="Paciente"
                 valor={field.value}
                 onChange={field.onChange}
                 erro={errors.pacienteId?.message}
+                placeholder="Digite o nome do paciente"
                 opcoes={pacientes.map((p) => ({
                   rotulo: p.nome,
                   valor: p.id,
@@ -300,11 +375,12 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
             control={control}
             name="profissionalId"
             render={({ field }) => (
-              <Seletor
+              <SeletorPesquisavel
                 rotulo="Profissional"
                 valor={field.value}
                 onChange={field.onChange}
                 erro={errors.profissionalId?.message}
+                placeholder="Digite o nome do profissional"
                 opcoes={profissionais.map((p) => ({
                   rotulo: p.nome,
                   valor: p.id,
@@ -321,28 +397,65 @@ export function AgendamentoFormulario({ atendimentoId }: AgendamentoFormularioPr
               control={control}
               name="data"
               render={({ field }) => (
-                <CampoGlass
-                  rotulo="Data"
-                  placeholder="AAAA-MM-DD"
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  erro={errors.data?.message}
-                  style={styles.campoLinha}
-                />
+                <>
+                  <CampoAcionavel
+                    rotulo="Data"
+                    placeholder="DD/MM/AAAA"
+                    valor={formatarDataFormulario(field.value)}
+                    erro={errors.data?.message}
+                    style={styles.campoLinha}
+                    onPress={() => setMostrandoData(true)}
+                  />
+                  {mostrandoData ? (
+                    <DateTimePicker
+                      value={criarDataPicker(field.value, horarioSelecionado)}
+                      mode="date"
+                      display="default"
+                      onChange={(event: DateTimePickerEvent, dataEscolhida?: Date) => {
+                        if (Platform.OS !== 'ios') {
+                          setMostrandoData(false);
+                        }
+                        if (event.type === 'dismissed' || !dataEscolhida) {
+                          return;
+                        }
+                        field.onChange(formatarDataISO(dataEscolhida));
+                      }}
+                    />
+                  ) : null}
+                </>
               )}
             />
             <Controller
               control={control}
               name="horario"
               render={({ field }) => (
-                <CampoGlass
-                  rotulo="Horário"
-                  placeholder="09:30"
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  erro={errors.horario?.message}
-                  style={styles.campoLinha}
-                />
+                <>
+                  <CampoAcionavel
+                    rotulo="Horário"
+                    placeholder="HH:mm"
+                    valor={field.value}
+                    erro={errors.horario?.message}
+                    style={styles.campoLinha}
+                    onPress={() => setMostrandoHorario(true)}
+                  />
+                  {mostrandoHorario ? (
+                    <DateTimePicker
+                      value={criarDataPicker(dataSelecionada, field.value)}
+                      mode="time"
+                      display="default"
+                      is24Hour
+                      onChange={(event: DateTimePickerEvent, horarioEscolhido?: Date) => {
+                        if (Platform.OS !== 'ios') {
+                          setMostrandoHorario(false);
+                        }
+                        if (event.type === 'dismissed' || !horarioEscolhido) {
+                          return;
+                        }
+                        field.onChange(formatarHorarioFormulario(horarioEscolhido));
+                      }}
+                    />
+                  ) : null}
+                </>
               )}
             />
           </View>
@@ -537,6 +650,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: COLORS.onSurface,
+  },
+  campoAcionavel: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  campoAcionavelTexto: {
+    color: COLORS.onSurface,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  campoAcionavelPlaceholder: {
+    color: COLORS.onSurfaceVariant,
   },
   campoInputErro: {
     borderColor: 'rgba(186,26,26,0.4)',

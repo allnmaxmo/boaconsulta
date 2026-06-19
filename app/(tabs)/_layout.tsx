@@ -6,8 +6,13 @@ import { StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/src/componentes/interface/HapticTab';
 import { cores } from '@/src/constantes/tema';
+import { useDadosClinica } from '@/src/contextos/DadosClinicaContexto';
 
 export default function TabLayout() {
+  const { perfilUsuario } = useDadosClinica();
+  const podeGerenciarClinica =
+    perfilUsuario?.cargo === 'administrador' || perfilUsuario?.cargo === 'atendente';
+
   return (
     <Tabs
       screenOptions={{
@@ -59,6 +64,7 @@ export default function TabLayout() {
         name="pacientes"
         options={{
           title: 'Pacientes',
+          href: podeGerenciarClinica ? undefined : null,
           tabBarIcon: ({ color }) => <MaterialIcons size={25} name="people-outline" color={color} />,
         }}
       />
@@ -66,6 +72,7 @@ export default function TabLayout() {
         name="profissionais"
         options={{
           title: 'Profissionais',
+          href: podeGerenciarClinica ? undefined : null,
           tabBarIcon: ({ color }) => <MaterialIcons size={25} name="badge" color={color} />,
         }}
       />

@@ -181,6 +181,52 @@ returns boolean language sql stable security definer set search_path = app, publ
   select app.cargo_atual() in ('administrador', 'atendente', 'profissional');
 $$;
 
+create or replace function app.usuario_eh_profissional_do_atendimento(p_profissional_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = app, public
+as $$
+  select exists (
+    select 1
+    from app.profissionais pr
+    where pr.id = p_profissional_id
+      and pr.usuario_id = auth.uid()
+  );
+$$;
+
+create or replace function app.usuario_eh_paciente_do_atendimento(p_paciente_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = app, public
+as $$
+  select exists (
+    select 1
+    from app.pacientes p
+    where p.id = p_paciente_id
+      and p.usuario_id = auth.uid()
+  );
+$$;
+
+create or replace function app.usuario_pode_ler_profissional(p_profissional_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = app, public
+as $$
+  select exists (
+    select 1
+    from app.atendimentos a
+    join app.pacientes p on p.id = a.paciente_id
+    where a.profissional_id = p_profissional_id
+      and p.usuario_id = auth.uid()
+  );
+$$;
+
 
 -- =====================================================================
 -- 6. TABELA: app.profissionais
@@ -570,7 +616,10 @@ drop policy if exists "profissionais_select_staff" on app.profissionais;
 create policy "profissionais_select_staff"
   on app.profissionais for select
   to authenticated
-  using (app.eh_staff_clinica());
+  using (
+    app.eh_staff_clinica()
+    or app.usuario_pode_ler_profissional(id)
+  );
 
 drop policy if exists "profissionais_insert_admin_atendente" on app.profissionais;
 create policy "profissionais_insert_admin_atendente"
@@ -642,12 +691,8 @@ create policy "atendimentos_select_staff"
   to authenticated
   using (
     app.eh_administrador_ou_atendente()
-    or profissional_id in (
-      select id from app.profissionais where usuario_id = auth.uid()
-    )
-    or paciente_id in (
-      select id from app.pacientes where usuario_id = auth.uid()
-    )
+    or app.usuario_eh_profissional_do_atendimento(profissional_id)
+    or app.usuario_eh_paciente_do_atendimento(paciente_id)
   );
 
 drop policy if exists "atendimentos_insert_staff" on app.atendimentos;
