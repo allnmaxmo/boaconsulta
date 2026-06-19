@@ -1,13 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import {
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AvisoSucesso } from '@/src/componentes/interface/AvisoSucesso';
-import { Botao } from '@/src/componentes/interface/Botao';
-import { Cabecalho } from '@/src/componentes/interface/Cabecalho';
-import { CampoTexto } from '@/src/componentes/interface/CampoTexto';
-import { ContainerTela } from '@/src/componentes/interface/ContainerTela';
 import { ModalConfirmacao } from '@/src/componentes/interface/ModalConfirmacao';
 import { useDadosClinica } from '@/src/contextos/DadosClinicaContexto';
 import { rotaApp } from '@/src/utilitarios/rotas';
@@ -16,12 +22,135 @@ import {
   profissionalSchema,
 } from '@/src/validacoes/formularios';
 
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+const COLORS = {
+  primary: '#004ac6',
+  onPrimary: '#ffffff',
+  onSurface: '#131b2e',
+  onSurfaceVariant: '#434655',
+  surface: '#faf8ff',
+  error: '#ba1a1a',
+  successBg: 'rgba(0, 74, 198, 0.08)',
+  errorBg: 'rgba(186, 26, 26, 0.08)',
+  glassButton: 'rgba(0, 74, 198, 0.88)',
+  glass: 'rgba(255, 255, 255, 0.55)',
+  glassBorder: 'rgba(255, 255, 255, 0.5)',
+  inputBg: 'rgba(255, 255, 255, 0.60)',
+};
+
+const RADIUS = {
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
+};
+
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
 type ProfissionalFormularioProps = {
   profissionalId?: string;
 };
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function GlassCard({ children, style }: { children: React.ReactNode; style?: object }) {
+  return <View style={[styles.glassCard, style]}>{children}</View>;
+}
+
+function CampoGlass({
+  rotulo,
+  placeholder,
+  value,
+  onChangeText,
+  erro,
+}: {
+  rotulo: string;
+  placeholder?: string;
+  value: string;
+  onChangeText: (t: string) => void;
+  erro?: string;
+}) {
+  return (
+    <View style={styles.campoWrap}>
+      <Text style={styles.campoRotulo}>{rotulo}</Text>
+      <TextInput
+        style={[styles.campoInput, erro && styles.campoInputErro]}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.onSurfaceVariant}
+        value={value}
+        onChangeText={onChangeText}
+      />
+      {erro ? <Text style={styles.campoErro}>{erro}</Text> : null}
+    </View>
+  );
+}
+
+function BotaoGlass({
+  titulo,
+  variante = 'primario',
+  icone,
+  carregando,
+  onPress,
+}: {
+  titulo: string;
+  variante?: 'primario' | 'perigo' | 'fantasma';
+  icone?: keyof typeof MaterialIcons.glyphMap;
+  carregando?: boolean;
+  onPress: () => void;
+}) {
+  const estilosFundo: Record<string, object> = {
+    primario: styles.botaoPrimario,
+    perigo: styles.botaoPerigo,
+    fantasma: styles.botaoFantasma,
+  };
+  const estilosTexto: Record<string, object> = {
+    primario: styles.botaoPrimarioTexto,
+    perigo: styles.botaoPerigoTexto,
+    fantasma: styles.botaoFantasmaTexto,
+  };
+  const coresIcone: Record<string, string> = {
+    primario: COLORS.onPrimary,
+    perigo: COLORS.error,
+    fantasma: COLORS.onSurfaceVariant,
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={carregando}
+      style={({ pressed }) => [
+        styles.botaoBase,
+        estilosFundo[variante],
+        (pressed || carregando) && { opacity: 0.72, transform: [{ scale: 0.97 }] },
+      ]}
+    >
+      {icone && <MaterialIcons name={icone} size={18} color={coresIcone[variante]} />}
+      <Text style={[styles.botaoTextoBase, estilosTexto[variante]]}>
+        {carregando ? 'Salvando...' : titulo}
+      </Text>
+    </Pressable>
+  );
+}
+
+function AvisoGlass({ mensagem, tipo = 'sucesso' }: { mensagem: string; tipo?: 'sucesso' | 'erro' }) {
+  return (
+    <View style={[styles.avisoWrap, tipo === 'erro' ? styles.avisoErro : styles.avisoSucesso]}>
+      <MaterialIcons
+        name={tipo === 'erro' ? 'error-outline' : 'check-circle-outline'}
+        size={18}
+        color={tipo === 'erro' ? COLORS.error : COLORS.primary}
+      />
+      <Text style={[styles.avisoTexto, tipo === 'erro' ? styles.avisoErroTexto : styles.avisoSucessoTexto]}>
+        {mensagem}
+      </Text>
+    </View>
+  );
+}
+
+// ─── Tela principal ───────────────────────────────────────────────────────────
+
 export function ProfissionalFormulario({ profissionalId }: ProfissionalFormularioProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { obterProfissional, criarProfissional, editarProfissional, excluirProfissional } =
     useDadosClinica();
   const profissional = profissionalId ? obterProfissional(profissionalId) : undefined;
@@ -46,14 +175,12 @@ export function ProfissionalFormulario({ profissionalId }: ProfissionalFormulari
   async function salvar(dados: CamposProfissional) {
     setEnviando(true);
     setErroEnvio(null);
-
     try {
       if (editando && profissionalId) {
         await editarProfissional(profissionalId, dados);
       } else {
         await criarProfissional(dados);
       }
-
       setSucesso(true);
       setTimeout(() => router.back(), 650);
     } catch (error) {
@@ -64,53 +191,83 @@ export function ProfissionalFormulario({ profissionalId }: ProfissionalFormulari
   }
 
   return (
-    <ContainerTela>
-      <Cabecalho
-        titulo={editando ? 'Editar Profissional' : 'Novo Profissional'}
-        subtitulo="Dados da equipe clínica"
-      />
+    <View style={[styles.tela, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      {sucesso ? <AvisoSucesso mensagem="Profissional salvo com sucesso." /> : null}
-      {erroEnvio ? <AvisoSucesso mensagem={erroEnvio} /> : null}
+      {/* ── Cabeçalho glass ── */}
+      <View style={styles.headerWrap}>
+        <GlassCard style={styles.headerCard}>
+          <View>
+            <Text style={styles.headerTitulo}>
+              {editando ? 'Editar Profissional' : 'Novo Profissional'}
+            </Text>
+            <Text style={styles.headerSubtitulo}>Dados da equipe clínica</Text>
+          </View>
+          <Pressable
+            onPress={() => router.back()}
+            style={({ pressed }) => [styles.botaoVoltar, pressed && { opacity: 0.7 }]}
+          >
+            <MaterialIcons name="arrow-back" size={22} color={COLORS.primary} />
+          </Pressable>
+        </GlassCard>
+      </View>
 
-      <Controller
-        control={control}
-        name="nome"
-        render={({ field }) => (
-          <CampoTexto
-            rotulo="Nome completo"
-            placeholder="Ex.: Dra. Fernanda Rocha"
-            value={field.value}
-            onChangeText={field.onChange}
-            erro={errors.nome?.message}
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* ── Avisos ── */}
+        {sucesso && <AvisoGlass mensagem="Profissional salvo com sucesso." tipo="sucesso" />}
+        {erroEnvio && <AvisoGlass mensagem={erroEnvio} tipo="erro" />}
+
+        {/* ── Campos ── */}
+        <GlassCard style={styles.formCard}>
+          <Controller
+            control={control}
+            name="nome"
+            render={({ field }) => (
+              <CampoGlass
+                rotulo="Nome completo"
+                placeholder="Ex.: Dra. Fernanda Rocha"
+                value={field.value}
+                onChangeText={field.onChange}
+                erro={errors.nome?.message}
+              />
+            )}
           />
-        )}
-      />
 
-      <Controller
-        control={control}
-        name="especialidade"
-        render={({ field }) => (
-          <CampoTexto
-            rotulo="Especialidade"
-            placeholder="Ex.: Cardiologia"
-            value={field.value}
-            onChangeText={field.onChange}
-            erro={errors.especialidade?.message}
+          <View style={styles.separador} />
+
+          <Controller
+            control={control}
+            name="especialidade"
+            render={({ field }) => (
+              <CampoGlass
+                rotulo="Especialidade"
+                placeholder="Ex.: Cardiologia"
+                value={field.value}
+                onChangeText={field.onChange}
+                erro={errors.especialidade?.message}
+              />
+            )}
           />
-        )}
-      />
+        </GlassCard>
 
-      <Botao titulo="Salvar" carregando={enviando} onPress={handleSubmit(salvar)} />
-      {editando ? (
-        <Botao
-          titulo="Excluir profissional"
-          variante="perigo"
-          icone="delete-outline"
-          onPress={() => setConfirmandoExclusao(true)}
-        />
-      ) : null}
-      <Botao titulo="Voltar" variante="fantasma" onPress={() => router.back()} />
+        {/* ── Ações ── */}
+        <View style={styles.acoes}>
+          <BotaoGlass titulo="Salvar" carregando={enviando} onPress={handleSubmit(salvar)} />
+          {editando && (
+            <BotaoGlass
+              titulo="Excluir profissional"
+              variante="perigo"
+              icone="delete-outline"
+              onPress={() => setConfirmandoExclusao(true)}
+            />
+          )}
+          <BotaoGlass titulo="Voltar" variante="fantasma" onPress={() => router.back()} />
+        </View>
+      </ScrollView>
 
       <ModalConfirmacao
         visivel={confirmandoExclusao}
@@ -125,12 +282,186 @@ export function ProfissionalFormulario({ profissionalId }: ProfissionalFormulari
               setConfirmandoExclusao(false);
               router.replace(rotaApp('/profissionais'));
             } catch (error) {
-              setErroEnvio(error instanceof Error ? error.message : 'Erro ao excluir profissional.');
+              setErroEnvio(
+                error instanceof Error ? error.message : 'Erro ao excluir profissional.',
+              );
               setConfirmandoExclusao(false);
             }
           }
         }}
       />
-    </ContainerTela>
+    </View>
   );
 }
+
+// ─── Estilos ──────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  tela: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+  },
+
+  // ── Cabeçalho ──
+  headerWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+    zIndex: 40,
+  },
+  headerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: RADIUS['2xl'],
+  },
+  headerTitulo: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    color: COLORS.onSurface,
+  },
+  headerSubtitulo: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.onSurfaceVariant,
+    marginTop: 2,
+  },
+  botaoVoltar: {
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.lg,
+    backgroundColor: 'rgba(0,74,198,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ── Scroll ──
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 14,
+  },
+
+  // ── Glass card base ──
+  glassCard: {
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 3,
+  },
+
+  // ── Card de formulário ──
+  formCard: {
+    borderRadius: RADIUS['2xl'],
+    padding: 20,
+    gap: 4,
+  },
+  separador: {
+    height: 1,
+    backgroundColor: 'rgba(195,198,215,0.4)',
+    marginVertical: 10,
+  },
+
+  // ── Campos ──
+  campoWrap: {
+    gap: 6,
+  },
+  campoRotulo: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    color: COLORS.onSurfaceVariant,
+    textTransform: 'uppercase',
+  },
+  campoInput: {
+    backgroundColor: COLORS.inputBg,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.onSurface,
+  },
+  campoInputErro: {
+    borderColor: 'rgba(186,26,26,0.4)',
+  },
+  campoErro: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.error,
+  },
+
+  // ── Avisos ──
+  avisoWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: RADIUS.xl,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderWidth: 1,
+  },
+  avisoSucesso: {
+    backgroundColor: COLORS.successBg,
+    borderColor: 'rgba(0,74,198,0.2)',
+  },
+  avisoErro: {
+    backgroundColor: COLORS.errorBg,
+    borderColor: 'rgba(186,26,26,0.2)',
+  },
+  avisoTexto: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  avisoSucessoTexto: { color: COLORS.primary },
+  avisoErroTexto: { color: COLORS.error },
+
+  // ── Ações ──
+  acoes: {
+    gap: 10,
+  },
+
+  // ── Botões ──
+  botaoBase: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    borderRadius: RADIUS.xl,
+  },
+  botaoTextoBase: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  botaoPrimario: {
+    backgroundColor: COLORS.glassButton,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  botaoPrimarioTexto: { color: COLORS.onPrimary },
+  botaoPerigo: {
+    backgroundColor: 'rgba(186,26,26,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(186,26,26,0.2)',
+  },
+  botaoPerigoTexto: { color: COLORS.error },
+  botaoFantasma: {
+    backgroundColor: 'transparent',
+  },
+  botaoFantasmaTexto: { color: COLORS.onSurfaceVariant },
+});
