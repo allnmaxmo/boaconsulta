@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AvisoSucesso } from '@/src/componentes/interface/AvisoSucesso';
 import { ModalConfirmacao } from '@/src/componentes/interface/ModalConfirmacao';
 import { Seletor } from '@/src/componentes/interface/Seletor';
 import { useDadosClinica } from '@/src/contextos/DadosClinicaContexto';

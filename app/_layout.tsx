@@ -28,6 +28,9 @@ export default function RootLayout() {
       <ThemeProvider value={temaBoaConsulta}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="cadastro" />
+          <Stack.Screen name="recuperar-senha" />
           <Stack.Screen name="agendamento/novo" options={{ presentation: 'modal' }} />
           <Stack.Screen name="agendamento/[id]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="pacientes/novo" options={{ presentation: 'modal' }} />

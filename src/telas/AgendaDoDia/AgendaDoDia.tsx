@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  Animated,
   Pressable,
   ScrollView,
   StatusBar,
@@ -99,7 +98,7 @@ export function AgendaDoDia() {
     profissionalFiltro === 'todos' ? undefined : profissionalFiltro,
   );
 
-  const opcoesProfissionais = useMemo(
+  const opcoesProfissionais = useMemo<{ rotulo: string; valor: string; detalhe?: string }[]>(
     () => [
       { rotulo: 'Todos', valor: 'todos' },
       ...profissionais.map((p) => ({
