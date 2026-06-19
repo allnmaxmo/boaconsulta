@@ -1,5 +1,5 @@
 -- =====================================================================
--- BOACONSULTA — ATUALIZAÇÃO 004
+-- BOACONSULTA — ATUALIZAÇÃO 007
 -- Sincronização do perfil do usuário com cadastros vinculados
 -- =====================================================================
 -- Use este arquivo se o schema principal e a atualização 001 já foram
