@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { GlassSurface } from '@/src/componentes/interface/GlassSurface';
@@ -29,7 +29,11 @@ export function CartaoProfissional({
         .stiffness(movimento.molas.entradaStiffness)}>
       <GlassSurface style={styles.cartao} contentStyle={styles.cartaoConteudo} intensity={84}>
         <View style={styles.avatar}>
-          <MaterialIcons name="badge" size={22} color={cores.verde} />
+          {profissional.avatarUrl ? (
+            <Image source={{ uri: profissional.avatarUrl }} style={styles.avatarImagem} />
+          ) : (
+            <Text style={styles.inicial}>{profissional.nome.charAt(0)}</Text>
+          )}
         </View>
         <View style={styles.info}>
           <Text style={styles.nome}>{profissional.nome}</Text>
@@ -67,6 +71,16 @@ const styles = StyleSheet.create({
     backgroundColor: cores.cianoSuave,
     borderWidth: 1,
     borderColor: cores.bordaClara,
+    overflow: 'hidden',
+  },
+  avatarImagem: {
+    width: '100%',
+    height: '100%',
+  },
+  inicial: {
+    color: cores.verde,
+    fontSize: 20,
+    fontWeight: '900',
   },
   info: {
     flex: 1,

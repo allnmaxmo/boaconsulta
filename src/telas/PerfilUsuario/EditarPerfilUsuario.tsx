@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   atualizarPerfilUsuarioAtual,
-  CargoUsuario,
   obterPerfilUsuarioAtual,
 } from '@/src/servicos/perfilSupabase';
 import {
@@ -35,13 +34,6 @@ const COLORS = {
   glass: 'rgba(255, 255, 255, 0.55)',
   glassBorder: 'rgba(255, 255, 255, 0.5)',
   inputBg: 'rgba(255, 255, 255, 0.60)',
-};
-
-const rotulosCargo: Record<CargoUsuario, string> = {
-  administrador: 'Administrador',
-  atendente: 'Atendente',
-  profissional: 'Profissional',
-  paciente: 'Paciente',
 };
 
 function CampoPerfil({
@@ -76,7 +68,6 @@ export function EditarPerfilUsuario() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
-  const [cargo, setCargo] = useState<CargoUsuario | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
@@ -101,7 +92,6 @@ export function EditarPerfilUsuario() {
         if (!telaAtiva) return;
 
         setEmail(perfil.email);
-        setCargo(perfil.cargo);
         reset({ nomeCompleto: perfil.nomeCompleto, telefone: perfil.telefone ?? '' });
       })
       .catch((error) => {
@@ -209,11 +199,9 @@ export function EditarPerfilUsuario() {
           <View style={styles.cartaoInformativo}>
             <Text style={styles.informacaoRotulo}>E-mail</Text>
             <Text style={styles.informacaoValor}>{email}</Text>
-            <Text style={styles.informacaoAjuda}>O e-mail de acesso não é alterado nesta tela.</Text>
-            <View style={styles.separador} />
-            <Text style={styles.informacaoRotulo}>Cargo</Text>
-            <Text style={styles.informacaoValor}>{cargo ? rotulosCargo[cargo] : '—'}</Text>
-            <Text style={styles.informacaoAjuda}>O cargo é protegido pelas regras do banco.</Text>
+            <Text style={styles.informacaoAjuda}>
+              Para alterar o e-mail de acesso, entre em contato com o suporte do app.
+            </Text>
           </View>
 
           <Pressable

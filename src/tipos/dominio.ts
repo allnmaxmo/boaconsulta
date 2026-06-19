@@ -6,6 +6,7 @@ export type Paciente = {
   nome: string;
   telefone: string;
   email?: string;
+  avatarUrl?: string;
   observacoes?: string;
 };
 
@@ -15,6 +16,7 @@ export type Profissional = {
   nome: string;
   especialidade: string;
   telefone?: string;
+  avatarUrl?: string;
   ativo?: boolean;
 };
 

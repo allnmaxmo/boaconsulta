@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInLeft } from 'react-native-reanimated';
 
 import { GlassSurface } from '@/src/componentes/interface/GlassSurface';
@@ -27,7 +27,11 @@ export function CartaoPaciente({ paciente, indice = 0, onAbrir, onEditar, onExcl
       <MotionPressable onPress={onAbrir}>
         <GlassSurface style={styles.cartao} contentStyle={styles.cartaoConteudo} intensity={84}>
           <View style={styles.avatar}>
-            <Text style={styles.inicial}>{paciente.nome.charAt(0)}</Text>
+            {paciente.avatarUrl ? (
+              <Image source={{ uri: paciente.avatarUrl }} style={styles.avatarImagem} />
+            ) : (
+              <Text style={styles.inicial}>{paciente.nome.charAt(0)}</Text>
+            )}
           </View>
           <View style={styles.info}>
             <Text style={styles.nome}>{paciente.nome}</Text>
@@ -67,6 +71,11 @@ const styles = StyleSheet.create({
     backgroundColor: cores.lilasSuave,
     borderWidth: 1,
     borderColor: cores.bordaClara,
+    overflow: 'hidden',
+  },
+  avatarImagem: {
+    width: '100%',
+    height: '100%',
   },
   inicial: {
     color: cores.lilas,

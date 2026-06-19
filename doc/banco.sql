@@ -269,6 +269,7 @@ create table if not exists app.pacientes (
   nome            text not null check (char_length(trim(nome)) > 0),
   telefone        text not null,
   email           citext,
+  avatar_url      text,
   observacoes     text,
   criado_em       timestamptz not null default now(),
   atualizado_em   timestamptz not null default now()

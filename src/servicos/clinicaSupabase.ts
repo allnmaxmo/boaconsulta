@@ -19,6 +19,7 @@ type PacienteRow = {
   nome: string;
   telefone: string;
   email?: string | null;
+  avatar_url?: string | null;
   observacoes?: string | null;
 };
 
@@ -28,6 +29,7 @@ type ProfissionalRow = {
   nome: string;
   especialidade: string;
   telefone?: string | null;
+  avatar_url?: string | null;
   ativo?: boolean | null;
 };
 
@@ -53,7 +55,7 @@ type DadosNovoAtendimento = Omit<Atendimento, 'id' | 'status'>;
 type DadosEdicaoAtendimento = Omit<Atendimento, 'id'>;
 
 const selectAtendimento =
-  'id,paciente_id,profissional_id,data_atendimento,hora_atendimento,duracao_minutos,lembrete_minutos,tipo_atendimento,status,notificacao_id,observacoes,pacientes:paciente_id(id,usuario_id,nome,telefone,email,observacoes),profissionais:profissional_id(id,usuario_id,nome,especialidade,telefone,ativo)';
+  'id,paciente_id,profissional_id,data_atendimento,hora_atendimento,duracao_minutos,lembrete_minutos,tipo_atendimento,status,notificacao_id,observacoes,pacientes:paciente_id(id,usuario_id,nome,telefone,email,avatar_url,observacoes),profissionais:profissional_id(id,usuario_id,nome,especialidade,telefone,avatar_url,ativo)';
 
 function primeiro<T>(valor: T | T[] | null | undefined) {
   return Array.isArray(valor) ? valor[0] : valor;
@@ -86,6 +88,7 @@ function mapearPaciente(row: PacienteRow): Paciente {
     nome: row.nome,
     telefone: row.telefone,
     email: row.email ?? undefined,
+    avatarUrl: row.avatar_url ?? undefined,
     observacoes: row.observacoes ?? undefined,
   };
 }
@@ -97,6 +100,7 @@ function mapearProfissional(row: ProfissionalRow): Profissional {
     nome: row.nome,
     especialidade: row.especialidade,
     telefone: row.telefone ?? undefined,
+    avatarUrl: row.avatar_url ?? undefined,
     ativo: row.ativo ?? undefined,
   };
 }
@@ -161,10 +165,10 @@ async function salvarNotificacaoAtendimento(atendimento: AtendimentoComRelaciona
 
 export async function listarDadosClinicaSupabase(): Promise<DadosClinica> {
   const [pacientesResposta, profissionaisResposta, atendimentosResposta] = await Promise.all([
-    supabase.from('pacientes').select('id,usuario_id,nome,telefone,email,observacoes').order('nome'),
+    supabase.from('pacientes').select('id,usuario_id,nome,telefone,email,avatar_url,observacoes').order('nome'),
     supabase
       .from('profissionais')
-      .select('id,usuario_id,nome,especialidade,telefone,ativo')
+      .select('id,usuario_id,nome,especialidade,telefone,avatar_url,ativo')
       .eq('ativo', true)
       .order('nome'),
     supabase
@@ -199,7 +203,7 @@ export async function criarPacienteSupabase(dados: DadosPaciente) {
   const { data, error } = await supabase
     .from('pacientes')
     .insert({ nome: dados.nome, telefone: dados.telefone })
-    .select('id,usuario_id,nome,telefone,email,observacoes')
+    .select('id,usuario_id,nome,telefone,email,avatar_url,observacoes')
     .single();
 
   if (error) {
@@ -214,7 +218,7 @@ export async function editarPacienteSupabase(pacienteId: string, dados: DadosPac
     .from('pacientes')
     .update({ nome: dados.nome, telefone: dados.telefone })
     .eq('id', pacienteId)
-    .select('id,usuario_id,nome,telefone,email,observacoes')
+    .select('id,usuario_id,nome,telefone,email,avatar_url,observacoes')
     .single();
 
   if (error) {
@@ -236,7 +240,7 @@ export async function criarProfissionalSupabase(dados: DadosProfissional) {
   const { data, error } = await supabase
     .from('profissionais')
     .insert({ nome: dados.nome, especialidade: dados.especialidade })
-    .select('id,usuario_id,nome,especialidade,telefone,ativo')
+    .select('id,usuario_id,nome,especialidade,telefone,avatar_url,ativo')
     .single();
 
   if (error) {
@@ -254,7 +258,7 @@ export async function editarProfissionalSupabase(
     .from('profissionais')
     .update({ nome: dados.nome, especialidade: dados.especialidade })
     .eq('id', profissionalId)
-    .select('id,usuario_id,nome,especialidade,telefone,ativo')
+    .select('id,usuario_id,nome,especialidade,telefone,avatar_url,ativo')
     .single();
 
   if (error) {
