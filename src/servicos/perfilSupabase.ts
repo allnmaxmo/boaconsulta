@@ -1,3 +1,5 @@
+import { File } from 'expo-file-system';
+
 import { supabase } from '@/src/servicos/supabase';
 
 const bucketImagemPerfil = 'imagem_perfil';
@@ -80,8 +82,12 @@ export async function enviarImagemPerfil(uri: string) {
   const extensao = obterExtensaoImagem(uri);
   const contentType = obterContentType(extensao);
   const caminhoArquivo = `${usuario.id}/avatar.${extensao}`;
-  const respostaArquivo = await fetch(uri);
-  const arquivo = await respostaArquivo.blob();
+  const arquivoLocal = new File(uri);
+  const arquivo = await arquivoLocal.arrayBuffer();
+
+  if (arquivo.byteLength === 0) {
+    throw new Error('A imagem selecionada está vazia. Escolha outra imagem e tente novamente.');
+  }
 
   const { error: erroUpload } = await supabase.storage
     .from(bucketImagemPerfil)
